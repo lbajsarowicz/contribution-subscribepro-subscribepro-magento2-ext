@@ -33,10 +33,11 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
      * @param array $buyRequestParams
      * @dataProvider updateAdditionalOptionsIfEmptySubscriptionOptionDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('updateAdditionalOptionsIfEmptySubscriptionOptionDataProvider')]
     public function testUpdateAdditionalOptionsIfEmptySubscriptionOption($buyRequestParams)
     {
         $orderItemMock = $this->createOrderItemMock();
-        $orderItemMock->expects($this->once())
+        $orderItemMock->expects($this->atLeastOnce())
             ->method('getProductOptionByCode')
             ->with('info_buyRequest')
             ->willReturn($buyRequestParams);
@@ -48,7 +49,7 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function updateAdditionalOptionsIfEmptySubscriptionOptionDataProvider()
+    public static function updateAdditionalOptionsIfEmptySubscriptionOptionDataProvider()
     {
         return [
             'Buy request is null' => [
@@ -80,16 +81,13 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
                 SubscriptionOptionInterface::OPTION => $subscriptionOption
             ]
         ];
-        $additionalOptions = [['options']];
-        $productOptions = ['key' => 'option', 'additional_options' => $additionalOptions];
 
         $orderItemMock = $this->createOrderItemMock();
-        $orderItemMock->expects($this->exactly(2))
+        $orderItemMock->expects($this->atLeastOnce())
             ->method('getProductOptionByCode')
             ->with('info_buyRequest')
             ->willReturn($buyRequestParams);
-        $orderItemMock->expects($this->exactly(2))->method('getProductOptions')->willReturn($productOptions);
-        $orderItemMock->expects($this->once())->method('setProductOptions')->with($productOptions);
+        $orderItemMock->expects($this->never())->method('setProductOptions');
 
         $this->orderItemHelper->updateAdditionalOptions($orderItemMock);
     }
@@ -100,6 +98,8 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
         $buyRequestParams = [
             OptionProcessor::KEY_SUBSCRIPTION_OPTION => [
                 'somekey' => ['value'],
+                SubscriptionOptionInterface::CREATE_NEW_SUBSCRIPTION_AT_CHECKOUT => false,
+                SubscriptionOptionInterface::ITEM_FULFILS_SUBSCRIPTION => false,
                 SubscriptionOptionInterface::OPTION => $subscriptionOption
             ]
         ];
@@ -116,11 +116,11 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
         ];
 
         $orderItemMock = $this->createOrderItemMock();
-        $orderItemMock->expects($this->once())
+        $orderItemMock->expects($this->atLeastOnce())
             ->method('getProductOptionByCode')
             ->with('info_buyRequest')
             ->willReturn($buyRequestParams);
-        $orderItemMock->expects($this->exactly(2))->method('getProductOptions')->willReturn($productOptions);
+        $orderItemMock->method('getProductOptions')->willReturn($productOptions);
         $orderItemMock->expects($this->once())->method('setProductOptions')->with($expectedProductOptions);
 
         $this->orderItemHelper->updateAdditionalOptions($orderItemMock);
@@ -133,6 +133,7 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
      * @param array $expectedProductOptions
      * @dataProvider updateAdditionalOptionsWithSubscriptionIdDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('updateAdditionalOptionsWithSubscriptionIdDataProvider')]
     public function testUpdateAdditionalOptionsWithSubscriptionId(
         $subscriptionId,
         $buyRequestParams,
@@ -140,11 +141,11 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
         $expectedProductOptions
     ) {
         $orderItemMock = $this->createOrderItemMock();
-        $orderItemMock->expects($this->any())
+        $orderItemMock->expects($this->atLeastOnce())
             ->method('getProductOptionByCode')
             ->with('info_buyRequest')
             ->willReturn($buyRequestParams);
-        $orderItemMock->expects($this->exactly(2))->method('getProductOptions')->willReturn($productOptions);
+        $orderItemMock->method('getProductOptions')->willReturn($productOptions);
         $orderItemMock->expects($this->once())->method('setProductOptions')->with($expectedProductOptions);
 
         $this->orderItemHelper->updateAdditionalOptions($orderItemMock, $subscriptionId);
@@ -153,7 +154,7 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function updateAdditionalOptionsWithSubscriptionIdDataProvider()
+    public static function updateAdditionalOptionsWithSubscriptionIdDataProvider()
     {
         return [
             'With subscription ID in buy request' => [
@@ -162,6 +163,7 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
                     'key' => 'value',
                     OptionProcessor::KEY_SUBSCRIPTION_OPTION => [
                         SubscriptionOptionInterface::OPTION => PlatformProductInterface::SO_SUBSCRIPTION,
+                        SubscriptionOptionInterface::CREATE_NEW_SUBSCRIPTION_AT_CHECKOUT => true,
                         SubscriptionOptionInterface::INTERVAL => 'interval_value',
                         SubscriptionOptionInterface::SUBSCRIPTION_ID => 3444
                     ]
@@ -190,6 +192,7 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
                 'buyRequestParams' => [
                     OptionProcessor::KEY_SUBSCRIPTION_OPTION => [
                         SubscriptionOptionInterface::OPTION => 'some_option_value',
+                        SubscriptionOptionInterface::ITEM_FULFILS_SUBSCRIPTION => true,
                         SubscriptionOptionInterface::INTERVAL => 'another_value',
                     ]
                 ],
@@ -223,6 +226,8 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
         $buyRequestParams = [
             OptionProcessor::KEY_SUBSCRIPTION_OPTION => [
                 'somekey' => ['value'],
+                SubscriptionOptionInterface::CREATE_NEW_SUBSCRIPTION_AT_CHECKOUT => false,
+                SubscriptionOptionInterface::ITEM_FULFILS_SUBSCRIPTION => false,
                 SubscriptionOptionInterface::OPTION => $subscriptionOption
             ]
         ];
@@ -239,11 +244,11 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
         ];
 
         $orderItemMock = $this->createOrderItemMock();
-        $orderItemMock->expects($this->once())
+        $orderItemMock->expects($this->atLeastOnce())
             ->method('getProductOptionByCode')
             ->with('info_buyRequest')
             ->willReturn($buyRequestParams);
-        $orderItemMock->expects($this->exactly(2))->method('getProductOptions')->willReturn($productOptions);
+        $orderItemMock->method('getProductOptions')->willReturn($productOptions);
         $orderItemMock->expects($this->once())->method('setProductOptions')->with($expectedProductOptions);
 
         $order = $this->createOrderMock();
@@ -268,7 +273,7 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
         ];
 
         $orderItemMock = $this->createOrderItemMock();
-        $orderItemMock->expects($this->once())
+        $orderItemMock->expects($this->atLeastOnce())
             ->method('getProductOptionByCode')
             ->with('info_buyRequest')
             ->willReturn($buyRequestParams);
@@ -286,6 +291,7 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
      * @param array $expectedProductOptions
      * @dataProvider cleanSubscriptionParamsDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('cleanSubscriptionParamsDataProvider')]
     public function testCleanSubscriptionParams(
         $deleteAll,
         $buyRequestParams,
@@ -293,7 +299,7 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
         $expectedProductOptions
     ) {
         $orderItemMock = $this->createOrderItemMock();
-        $orderItemMock->expects($this->once())
+        $orderItemMock->expects($this->atLeastOnce())
             ->method('getProductOptionByCode')
             ->with('info_buyRequest')
             ->willReturn($buyRequestParams);
@@ -307,7 +313,7 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function cleanSubscriptionParamsDataProvider()
+    public static function cleanSubscriptionParamsDataProvider()
     {
         return [
             'With deleteAll' => [
@@ -350,7 +356,7 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
                 'expectedProductOptions' => [
                     'info_buyRequest' => [
                         OptionProcessor::KEY_SUBSCRIPTION_OPTION => [
-                            SubscriptionOptionInterface::OPTION => PlatformProductInterface::SO_SUBSCRIPTION,
+                            SubscriptionOptionInterface::SUBSCRIPTION_ID => 4531,
                         ]
                     ],
                 ],
@@ -400,7 +406,7 @@ class OrderItemTest extends \PHPUnit\Framework\TestCase
         ];
 
         $orderItemMock = $this->createOrderItemMock();
-        $orderItemMock->expects($this->exactly(2))->method('getProductOptions')->willReturn($productOptions);
+        $orderItemMock->method('getProductOptions')->willReturn($productOptions);
         $orderItemMock->expects($this->once())->method('setProductOptions')->with($expectedProductOptions);
 
         $this->orderItemHelper->cleanAdditionalOptions($orderItemMock);

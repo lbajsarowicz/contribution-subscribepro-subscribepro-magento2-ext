@@ -38,10 +38,10 @@ class CardDetailsHandlerTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @expectedException \LogicException
-     */
+      */
     public function testFailToHandleIfPaymentInfoNotValid()
     {
+        $this->expectException(\LogicException::class);
         $handlingSubject = ['subject'];
         $response = ['response'];
         $transactionMock = $this->getMockBuilder(TransactionInterface::class)->getMock();
@@ -69,7 +69,7 @@ class CardDetailsHandlerTest extends \PHPUnit\Framework\TestCase
         $response = ['response'];
 
         $transactionMock = $this->getMockBuilder(TransactionInterface::class)->getMock();
-        $transactionMock->expects($this->any())->method('getCreditcardLastDigits')->willReturn(4111);
+        $transactionMock->method('getCreditcardLastDigits')->willReturn(4111);
         $transactionMock->expects($this->once())->method('getCreditcardMonth')->willReturn('05');
         $transactionMock->expects($this->once())->method('getCreditcardYear')->willReturn('2012');
         $transactionMock->expects($this->once())->method('getCreditcardType')->willReturn('visa');
@@ -81,12 +81,12 @@ class CardDetailsHandlerTest extends \PHPUnit\Framework\TestCase
         $paymentInfoMock->expects($this->once())->method('setCcExpMonth')->with('05');
         $paymentInfoMock->expects($this->once())->method('setCcExpYear')->with('2012');
         $paymentInfoMock->expects($this->once())->method('setCcType')->with('visa-type');
-        $paymentInfoMock->expects($this->at(4))
+        $additionalInformation = [];
+        $paymentInfoMock->expects($this->exactly(2))
             ->method('setAdditionalInformation')
-            ->with(CardDetailsHandler::CARD_TYPE);
-        $paymentInfoMock->expects($this->at(5))
-            ->method('setAdditionalInformation')
-            ->with(CardDetailsHandler::CARD_NUMBER, 'xxxx-4111');
+            ->willReturnCallback(function ($key, $value) use (&$additionalInformation) {
+                $additionalInformation[$key] = $value;
+            });
 
         $paymentDOMock = $this->getMockBuilder(PaymentDataObjectInterface::class)->getMock();
         $paymentDOMock->expects($this->once())->method('getPayment')->willReturn($paymentInfoMock);
@@ -107,5 +107,9 @@ class CardDetailsHandlerTest extends \PHPUnit\Framework\TestCase
             ->willReturn('visa-type');
 
         $this->cardDetailsHandler->handle($handlingSubject, $response);
+        $this->assertSame([
+            CardDetailsHandler::CARD_TYPE => 'visa-type',
+            CardDetailsHandler::CARD_NUMBER => 'xxxx-4111'
+        ], $additionalInformation);
     }
 }

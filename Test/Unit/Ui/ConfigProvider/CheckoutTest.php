@@ -22,7 +22,10 @@ class CheckoutTest extends \PHPUnit\Framework\TestCase
         $this->gatewayConfigProviderMock = $this->getMockBuilder(GatewayConfigProvider::class)
             ->disableOriginalConstructor()->getMock();
 
-        $this->uiCheckoutConfig = new Checkout($this->gatewayConfigProviderMock);
+        $this->uiCheckoutConfig = new Checkout(
+            $this->gatewayConfigProviderMock,
+            $this->createMock(\Psr\Log\LoggerInterface::class)
+        );
     }
 
     public function testGetConfig()

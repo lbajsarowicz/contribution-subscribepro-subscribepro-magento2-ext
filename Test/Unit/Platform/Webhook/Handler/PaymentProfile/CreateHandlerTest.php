@@ -11,306 +11,95 @@ use Magento\Vault\Model\CreditCardTokenFactory;
 use SubscribePro\Service\Customer\CustomerInterface as PlatformCustomerInterface;
 use SubscribePro\Service\PaymentProfile\PaymentProfileInterface;
 use SubscribePro\Service\Webhook\EventInterface;
-use Swarming\SubscribePro\Helper\Vault as VaultHelper;
-use Swarming\SubscribePro\Platform\Service\PaymentProfile as PaymentProfileService;
+use Swarming\SubscribePro\Gateway\Config\ApplePayConfigProvider;
+use Swarming\SubscribePro\Gateway\Config\ConfigProvider;
+use Swarming\SubscribePro\Helper\Vault;
+use Swarming\SubscribePro\Platform\Service\PaymentProfile;
 use Swarming\SubscribePro\Platform\Webhook\Handler\PaymentProfile\CreateHandler;
 
 class CreateHandlerTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * @var \Swarming\SubscribePro\Platform\Webhook\Handler\PaymentProfile\CreateHandler
+     * @dataProvider executeDataProvider
      */
-    protected $createHandler;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Vault\Api\PaymentTokenManagementInterface
-     */
-    protected $paymentTokenManagementMock;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Vault\Api\PaymentTokenRepositoryInterface
-     */
-    protected $paymentTokenRepositoryMock;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Customer\Api\CustomerRepositoryInterface
-     */
-    protected $customerRepositoryMock;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Swarming\SubscribePro\Platform\Service\PaymentProfile
-     */
-    protected $platformPaymentProfileServiceMock;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Swarming\SubscribePro\Helper\Vault
-     */
-    protected $vaultHelperMock;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Vault\Model\CreditCardTokenFactory
-     */
-    protected $paymentTokenFactoryMock;
-
-    protected function setUp(): void
+    #[\PHPUnit\Framework\Attributes\DataProvider('executeDataProvider')]
+    public function testExecute($profileData, $customerData, $email, $profileHasCustomerId, $existing, $methodCode)
     {
-        $this->paymentTokenManagementMock = $this->getMockBuilder(PaymentTokenManagementInterface::class)->getMock();
-        $this->paymentTokenRepositoryMock = $this->getMockBuilder(PaymentTokenRepositoryInterface::class)->getMock();
-        $this->customerRepositoryMock = $this->getMockBuilder(CustomerRepositoryInterface::class)->getMock();
-        $this->platformPaymentProfileServiceMock = $this->getMockBuilder(PaymentProfileService::class)
-            ->disableOriginalConstructor()->getMock();
-        $this->vaultHelperMock = $this->getMockBuilder(VaultHelper::class)
-            ->disableOriginalConstructor()->getMock();
-        $this->paymentTokenFactoryMock = $this->getMockBuilder(CreditCardTokenFactory::class)
-            ->disableOriginalConstructor()
-            ->setMethods(['create'])
-            ->getMock();
+        $customerId = 4341;
+        $tokenManagement = $this->createMock(PaymentTokenManagementInterface::class);
+        $tokenRepository = $this->createMock(PaymentTokenRepositoryInterface::class);
+        $customerRepository = $this->createMock(CustomerRepositoryInterface::class);
+        $profileService = $this->getMockBuilder(PaymentProfile::class)->disableOriginalConstructor()->getMock();
+        $vault = $this->getMockBuilder(Vault::class)->disableOriginalConstructor()->getMock();
+        $tokenFactory = $this->getMockBuilder(CreditCardTokenFactory::class)
+            ->disableOriginalConstructor()->onlyMethods(['create'])->getMock();
+        $token = $this->createMock(PaymentTokenInterface::class);
+        $event = $this->createMock(EventInterface::class);
+        $event->method('getEventData')->willReturnMap([
+            ['payment_profile', $profileData],
+            ['customer', $customerData],
+            ['payment_profile_id', 123]
+        ]);
 
-        $this->createHandler = new CreateHandler(
-            $this->paymentTokenManagementMock,
-            $this->paymentTokenRepositoryMock,
-            $this->customerRepositoryMock,
-            $this->platformPaymentProfileServiceMock,
-            $this->vaultHelperMock,
-            $this->paymentTokenFactoryMock
+        if ($email !== null) {
+            $customer = $this->createMock(CustomerInterface::class);
+            $customer->method('getId')->willReturn($customerId);
+            $customerRepository->expects($this->exactly($profileHasCustomerId || $existing ? 1 : 2))
+                ->method('get')->with($email)->willReturn($customer);
+        } else {
+            $customerRepository->expects($this->never())->method('get');
+        }
+        $tokenManagement->expects($this->once())->method('getByGatewayToken')
+            ->with(123, $methodCode, $customerId)->willReturn($existing ? $token : null);
+        $tokenFactory->expects($existing ? $this->never() : $this->once())
+            ->method('create')->willReturn($token);
+        $tokenRepository->expects($existing ? $this->never() : $this->once())->method('save')->with($token);
+        $vault->expects($existing ? $this->never() : $this->once())
+            ->method('initVault')->with($token, $this->isInstanceOf(PaymentProfileInterface::class), $methodCode);
+
+        if ($existing) {
+            $profileService->expects($this->never())->method('createProfile');
+        } else {
+            $profile = $this->createMock(PaymentProfileInterface::class);
+            $profile->expects($this->once())->method('getMagentoCustomerId')
+                ->willReturn($profileHasCustomerId ? $customerId : null);
+            $profile->expects($profileHasCustomerId ? $this->never() : $this->once())
+                ->method('setMagentoCustomerId')->with($customerId);
+            $profileService->expects($this->once())->method('createProfile')->with($profileData)->willReturn($profile);
+        }
+
+        $handler = new CreateHandler(
+            $tokenManagement,
+            $tokenRepository,
+            $customerRepository,
+            $profileService,
+            $vault,
+            $tokenFactory
         );
+        $handler->execute($event);
     }
 
-    public function testExecuteIfCustomerIdIsInProfileData()
+    public static function executeDataProvider()
     {
-        $customerId = 4341;
-        $profileData = [
-            'key' => 'value',
-            PaymentProfileInterface::MAGENTO_CUSTOMER_ID => $customerId
-        ];
-
-        $profileMock = $this->createProfileMock();
-        $profileMock->expects($this->once())->method('getMagentoCustomerId')->willReturn(null);
-        $profileMock->expects($this->once())->method('setMagentoCustomerId')->with($customerId);
-
-        $paymentTokenMock = $this->createPaymentTokenMock();
-
-        $webhookEventMock = $this->createWebhookEventMock();
-        $webhookEventMock->expects($this->exactly(2))
-            ->method('getEventData')
-            ->with('payment_profile')
-            ->willReturn($profileData);
-
-        $this->paymentTokenFactoryMock->expects($this->once())
-            ->method('create')
-            ->willReturn($paymentTokenMock);
-
-        $this->platformPaymentProfileServiceMock->expects($this->once())
-            ->method('createProfile')
-            ->with($profileData)
-            ->willReturn($profileMock);
-
-        $this->vaultHelperMock->expects($this->once())
-            ->method('initVault')
-            ->with($paymentTokenMock, $profileMock);
-
-        $this->paymentTokenRepositoryMock->expects($this->once())
-            ->method('save')
-            ->with($paymentTokenMock);
-
-        $this->createHandler->execute($webhookEventMock);
-    }
-
-    public function testExecuteIfCustomerIdIsInCustomerData()
-    {
-        $customerId = 89898;
-        $profileData = ['key' => 'value'];
-        $customerData = [PlatformCustomerInterface::MAGENTO_CUSTOMER_ID => $customerId];
-
-        $profileMock = $this->createProfileMock();
-        $profileMock->expects($this->once())->method('getMagentoCustomerId')->willReturn(null);
-        $profileMock->expects($this->once())->method('setMagentoCustomerId')->with($customerId);
-
-        $paymentTokenMock = $this->createPaymentTokenMock();
-
-        $webhookEventMock = $this->createWebhookEventMock();
-        $webhookEventMock->expects($this->at(0))
-            ->method('getEventData')
-            ->with('payment_profile')
-            ->willReturn($profileData);
-        $webhookEventMock->expects($this->at(1))
-            ->method('getEventData')
-            ->with('payment_profile')
-            ->willReturn($profileData);
-        $webhookEventMock->expects($this->at(2))
-            ->method('getEventData')
-            ->with('customer')
-            ->willReturn($customerData);
-
-        $this->paymentTokenFactoryMock->expects($this->once())
-            ->method('create')
-            ->willReturn($paymentTokenMock);
-
-        $this->platformPaymentProfileServiceMock->expects($this->once())
-            ->method('createProfile')
-            ->with($profileData)
-            ->willReturn($profileMock);
-
-        $this->vaultHelperMock->expects($this->once())
-            ->method('initVault')
-            ->with($paymentTokenMock, $profileMock);
-
-        $this->paymentTokenRepositoryMock->expects($this->once())
-            ->method('save')
-            ->with($paymentTokenMock);
-
-        $this->createHandler->execute($webhookEventMock);
-    }
-
-    /**
-     * @param array $profileData
-     * @param array $customerData
-     * @param string $email
-     * @param int $customerId
-     * @dataProvider executeWithCustomerEmailDataProvider
-     */
-    public function testExecuteWithCustomerEmail($profileData, $customerData, $email, $customerId)
-    {
-        $profileMock = $this->createProfileMock();
-        $profileMock->expects($this->once())->method('getMagentoCustomerId')->willReturn(null);
-        $profileMock->expects($this->once())->method('setMagentoCustomerId')->with($customerId);
-
-        $customerMock = $this->createCustomerMock();
-        $customerMock->expects($this->once())->method('getId')->willReturn($customerId);
-
-        $paymentTokenMock = $this->createPaymentTokenMock();
-
-        $webhookEventMock = $this->createWebhookEventMock();
-        $webhookEventMock->expects($this->at(0))
-            ->method('getEventData')
-            ->with('payment_profile')
-            ->willReturn($profileData);
-        $webhookEventMock->expects($this->at(1))
-            ->method('getEventData')
-            ->with('payment_profile')
-            ->willReturn($profileData);
-        $webhookEventMock->expects($this->at(2))
-            ->method('getEventData')
-            ->with('customer')
-            ->willReturn($customerData);
-
-        $this->paymentTokenFactoryMock->expects($this->once())
-            ->method('create')
-            ->willReturn($paymentTokenMock);
-
-        $this->platformPaymentProfileServiceMock->expects($this->once())
-            ->method('createProfile')
-            ->with($profileData)
-            ->willReturn($profileMock);
-
-        $this->vaultHelperMock->expects($this->once())
-            ->method('initVault')
-            ->with($paymentTokenMock, $profileMock);
-
-        $this->paymentTokenRepositoryMock->expects($this->once())
-            ->method('save')
-            ->with($paymentTokenMock);
-
-        $this->customerRepositoryMock->expects($this->once())
-            ->method('get')
-            ->with($email)
-            ->willReturn($customerMock);
-
-        $this->createHandler->execute($webhookEventMock);
-    }
-
-    /**
-     * @return array
-     */
-    public function executeWithCustomerEmailDataProvider()
-    {
+        $profile = [PaymentProfileInterface::MAGENTO_CUSTOMER_ID => 4341];
+        $customer = [PlatformCustomerInterface::MAGENTO_CUSTOMER_ID => 4341];
         return [
-            'Email is in profile data' => [
-                'profileData' => [
-                    PaymentProfileInterface::CUSTOMER_EMAIL => 'email@mail.mail',
-                    'some' => 'another field'
-                ],
-                'customerData' => ['name' => 'john'],
-                'email' => 'email@mail.mail',
-                'customerId' => 53242
+            'Customer ID in profile' => [$profile, [], null, false, false, ConfigProvider::CODE],
+            'Customer ID in customer' => [[], $customer, null, false, false, ConfigProvider::CODE],
+            'Email in profile' => [
+                [PaymentProfileInterface::CUSTOMER_EMAIL => 'profile@example.com'],
+                [], 'profile@example.com', false, false, ConfigProvider::CODE
             ],
-            'Email is in customer data' => [
-                'profileData' => ['profile data'],
-                'customerData' => [
-                    PlatformCustomerInterface::EMAIL => 'some@email',
-                ],
-                'email' => 'some@email',
-                'customerId' => 4234
+            'Email in customer' => [
+                [], [PlatformCustomerInterface::EMAIL => 'customer@example.com'],
+                'customer@example.com', false, false, ConfigProvider::CODE
             ],
+            'Profile already has customer ID' => [$profile, [], null, true, false, ConfigProvider::CODE],
+            'Existing token' => [$profile, [], null, true, true, ConfigProvider::CODE],
+            'Apple Pay token' => [
+                $profile + ['payment_method_type' => CreateHandler::PAYMENT_METHOD_CODE],
+                [], null, true, false, ApplePayConfigProvider::CODE
+            ]
         ];
-    }
-
-    public function testExecuteIfProfileHasCustomerId()
-    {
-        $customerId = 4341;
-        $profileData = ['profile data'];
-
-        $profileMock = $this->createProfileMock();
-        $profileMock->expects($this->once())->method('getMagentoCustomerId')->willReturn($customerId);
-        $profileMock->expects($this->never())->method('setMagentoCustomerId');
-
-        $paymentTokenMock = $this->createPaymentTokenMock();
-
-        $webhookEventMock = $this->createWebhookEventMock();
-        $webhookEventMock->expects($this->once())
-            ->method('getEventData')
-            ->with('payment_profile')
-            ->willReturn($profileData);
-
-        $this->paymentTokenFactoryMock->expects($this->once())
-            ->method('create')
-            ->willReturn($paymentTokenMock);
-
-        $this->platformPaymentProfileServiceMock->expects($this->once())
-            ->method('createProfile')
-            ->with($profileData)
-            ->willReturn($profileMock);
-
-        $this->vaultHelperMock->expects($this->once())
-            ->method('initVault')
-            ->with($paymentTokenMock, $profileMock);
-
-        $this->paymentTokenRepositoryMock->expects($this->once())
-            ->method('save')
-            ->with($paymentTokenMock);
-
-        $this->createHandler->execute($webhookEventMock);
-    }
-
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Vault\Api\Data\PaymentTokenInterface
-     */
-    private function createPaymentTokenMock()
-    {
-        return $this->getMockBuilder(PaymentTokenInterface::class)->getMock();
-    }
-
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\SubscribePro\Service\Webhook\EventInterface
-     */
-    private function createWebhookEventMock()
-    {
-        return $this->getMockBuilder(EventInterface::class)->getMock();
-    }
-
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\SubscribePro\Service\PaymentProfile\PaymentProfileInterface
-     */
-    private function createProfileMock()
-    {
-        return $this->getMockBuilder(PaymentProfileInterface::class)->getMock();
-    }
-
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Customer\Api\Data\CustomerInterface
-     */
-    private function createCustomerMock()
-    {
-        return $this->getMockBuilder(CustomerInterface::class)->getMock();
     }
 }

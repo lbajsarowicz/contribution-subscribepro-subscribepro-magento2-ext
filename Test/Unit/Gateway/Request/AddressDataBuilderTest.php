@@ -10,7 +10,7 @@ use Swarming\SubscribePro\Api\Data\AddressInterface;
 use Swarming\SubscribePro\Gateway\Helper\SubjectReader;
 use Swarming\SubscribePro\Gateway\Request\AddressDataBuilder;
 
-class AddressDataReaderTest extends \PHPUnit\Framework\TestCase
+class AddressDataBuilderTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * @var \PHPUnit_Framework_MockObject_MockObject|\Swarming\SubscribePro\Gateway\Helper\SubjectReader
@@ -59,11 +59,12 @@ class AddressDataReaderTest extends \PHPUnit\Framework\TestCase
                 AddressInterface::COMPANY => 'Starcraft',
                 AddressInterface::STREET1 => 'Some street',
                 AddressInterface::STREET2 => 'Metal st.',
-                AddressInterface::STREET3 => 'And another line',
+                AddressInterface::STREET3 => null,
                 AddressInterface::CITY => 'New York',
                 AddressInterface::REGION => 'ABB',
                 AddressInterface::POSTCODE => '101 01',
-                AddressInterface::COUNTRY => 'USA'
+                AddressInterface::COUNTRY => 'USA',
+                AddressInterface::PHONE => '555-0100'
             ]
         ];
         $billingAddressMock = $this->getMockBuilder(AddressAdapterInterface::class)
@@ -74,7 +75,7 @@ class AddressDataReaderTest extends \PHPUnit\Framework\TestCase
         $billingAddressMock->expects($this->once())->method('getCompany')->willReturn('Starcraft');
         $billingAddressMock->expects($this->once())->method('getStreetLine1')->willReturn('Some street');
         $billingAddressMock->expects($this->once())->method('getStreetLine2')->willReturn('Metal st.');
-        $billingAddressMock->expects($this->once())->method('getStreetLine3')->willReturn('And another line');
+        $billingAddressMock->expects($this->once())->method('getTelephone')->willReturn('555-0100');
         $billingAddressMock->expects($this->once())->method('getCity')->willReturn('New York');
         $billingAddressMock->expects($this->once())->method('getRegionCode')->willReturn('ABB');
         $billingAddressMock->expects($this->once())->method('getPostcode')->willReturn('101 01');

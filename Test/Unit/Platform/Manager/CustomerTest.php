@@ -38,11 +38,11 @@ class CustomerTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @expectedException \Magento\Framework\Exception\NoSuchEntityException
-     * @expectedExceptionMessage Platform customer is not found.
-     */
+       */
     public function testFailToGetCustomerIfNotFound()
     {
+        $this->expectException(\Magento\Framework\Exception\NoSuchEntityException::class);
+        $this->expectExceptionMessage('Platform customer is not found.');
         $email = 'email';
         $websiteId = 12;
 

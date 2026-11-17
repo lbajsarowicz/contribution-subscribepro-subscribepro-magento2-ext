@@ -31,14 +31,18 @@ class VaultDataBuilderTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @expectedException \Exception
-     * @expectedExceptionMessage The vault is not found.
-     * @dataProvider failToBuildWithEmptyVaultDataProvider
-     * @param null|\PHPUnit_Framework_MockObject_MockObject $extensionAttributes
+       * @dataProvider failToBuildWithEmptyVaultDataProvider
+     * @param bool $withExtensionAttributes
      */
-    public function testFailToBuildWithEmptyVault($extensionAttributes)
+    #[\PHPUnit\Framework\Attributes\DataProvider('failToBuildWithEmptyVaultDataProvider')]
+    public function testFailToBuildWithEmptyVault($withExtensionAttributes)
     {
         $subject = ['subject'];
+        $extensionAttributes = $withExtensionAttributes
+            ? $this->createMock(OrderPaymentExtensionInterface::class)
+            : null;
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessage('The vault is not found.');
 
         $paymentInfoMock = $this->getMockBuilder(Payment::class)
             ->disableOriginalConstructor()
@@ -61,23 +65,11 @@ class VaultDataBuilderTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function failToBuildWithEmptyVaultDataProvider()
+    public static function failToBuildWithEmptyVaultDataProvider()
     {
-        $extensionAttributes = $this->getMockBuilder(OrderPaymentExtensionInterface::class)
-            ->setMethods(
-                [
-                    'getNotificationMessage',
-                    'setNotificationMessage',
-                    'setVaultPaymentToken',
-                    'getVaultPaymentToken'
-                ]
-            )
-            ->getMock();
-        $extensionAttributes->expects($this->any())->method('getVaultPaymentToken')->willReturn(null);
-
         return [
-            'Without extension attributes' => ['extensionAttributes' => null],
-            'With extension attributes' => ['extensionAttributes' => $extensionAttributes],
+            'Without extension attributes' => [false],
+            'With extension attributes' => [true],
         ];
     }
 
@@ -99,16 +91,8 @@ class VaultDataBuilderTest extends \PHPUnit\Framework\TestCase
             ->willReturn($profileId);
 
         $extensionAttributes = $this->getMockBuilder(OrderPaymentExtensionInterface::class)
-            ->setMethods(
-                [
-                    'getNotificationMessage',
-                    'setNotificationMessage',
-                    'setVaultPaymentToken',
-                    'getVaultPaymentToken'
-                ]
-            )
             ->getMock();
-        $extensionAttributes->expects($this->any())
+        $extensionAttributes
             ->method('getVaultPaymentToken')
             ->willReturn($paymentTokenMock);
 
@@ -120,13 +104,10 @@ class VaultDataBuilderTest extends \PHPUnit\Framework\TestCase
             ->willReturn($extensionAttributes);
         $paymentInfoMock->expects($this->exactly(4))
             ->method('getAdditionalInformation')
-            ->withConsecutive(
-                [TransactionInterface::UNIQUE_ID],
-                [TransactionInterface::UNIQUE_ID],
-                [TransactionInterface::SUBSCRIBE_PRO_ORDER_TOKEN],
-                [TransactionInterface::SUBSCRIBE_PRO_ORDER_TOKEN]
-            )
-            ->willReturnOnConsecutiveCalls($uniqueId, $uniqueId, $orderToken, $orderToken);
+            ->willReturnMap([
+                [TransactionInterface::UNIQUE_ID, $uniqueId],
+                [TransactionInterface::SUBSCRIBE_PRO_ORDER_TOKEN, $orderToken]
+            ]);
 
         $paymentDOMock = $this->getMockBuilder(PaymentDataObjectInterface::class)->getMock();
         $paymentDOMock->expects($this->once())->method('getPayment')->willReturn($paymentInfoMock);
@@ -155,16 +136,8 @@ class VaultDataBuilderTest extends \PHPUnit\Framework\TestCase
             ->willReturn($profileId);
 
         $extensionAttributes = $this->getMockBuilder(OrderPaymentExtensionInterface::class)
-            ->setMethods(
-                [
-                    'getNotificationMessage',
-                    'setNotificationMessage',
-                    'setVaultPaymentToken',
-                    'getVaultPaymentToken'
-                ]
-            )
             ->getMock();
-        $extensionAttributes->expects($this->any())
+        $extensionAttributes
             ->method('getVaultPaymentToken')
             ->willReturn($paymentTokenMock);
 
@@ -174,14 +147,12 @@ class VaultDataBuilderTest extends \PHPUnit\Framework\TestCase
         $paymentInfoMock->expects($this->once())
             ->method('getExtensionAttributes')
             ->willReturn($extensionAttributes);
-        $paymentInfoMock->expects($this->exactly(3))
+        $paymentInfoMock->expects($this->exactly(4))
             ->method('getAdditionalInformation')
-            ->withConsecutive(
-                [TransactionInterface::UNIQUE_ID],
-                [TransactionInterface::SUBSCRIBE_PRO_ORDER_TOKEN],
-                [TransactionInterface::SUBSCRIBE_PRO_ORDER_TOKEN]
-            )
-            ->willReturnOnConsecutiveCalls(false, $orderToken, $orderToken);
+            ->willReturnMap([
+                [TransactionInterface::UNIQUE_ID, false],
+                [TransactionInterface::SUBSCRIBE_PRO_ORDER_TOKEN, $orderToken]
+            ]);
 
         $paymentDOMock = $this->getMockBuilder(PaymentDataObjectInterface::class)->getMock();
         $paymentDOMock->expects($this->once())->method('getPayment')->willReturn($paymentInfoMock);

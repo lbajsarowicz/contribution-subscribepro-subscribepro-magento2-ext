@@ -261,8 +261,8 @@ class AddProductToCartAfterTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionOptionUpdaterMock->expects($this->exactly(2))
             ->method('update')
             ->willReturnMap([
-                [$quoteItem1Mock, $platformProduct1ParentMock, $subscriptionOption, $subscriptionInterval, []],
-                [$quoteItem2Mock, $platformProduct2Mock, $subscriptionOption, $subscriptionInterval, []]
+                [$quoteItem1Mock, $platformProduct1ParentMock, $subscriptionOption, $subscriptionInterval, null, []],
+                [$quoteItem2Mock, $platformProduct2Mock, $subscriptionOption, $subscriptionInterval, null, []]
             ]);
 
         $this->addProductToCartAfter->execute($observerMock);

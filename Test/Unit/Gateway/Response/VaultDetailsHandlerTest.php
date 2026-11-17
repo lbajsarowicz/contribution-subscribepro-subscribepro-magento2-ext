@@ -53,10 +53,10 @@ class VaultDetailsHandlerTest extends \PHPUnit\Framework\TestCase
             ->disableOriginalConstructor()->getMock();
         $this->paymentTokenFactoryMock = $this->getMockBuilder(CreditCardTokenFactory::class)
             ->disableOriginalConstructor()
-            ->setMethods(['create', 'getType'])->getMock();
+            ->onlyMethods(['create'])->getMock();
         $this->paymentExtensionFactoryMock = $this->getMockBuilder(OrderPaymentExtensionInterfaceFactory::class)
             ->disableOriginalConstructor()
-            ->setMethods(['create'])->getMock();
+            ->onlyMethods(['create'])->getMock();
         $this->vaultHelperMock = $this->getMockBuilder(SubscribeProVaultHelper::class)
             ->disableOriginalConstructor()->getMock();
         $this->gatewayConfigMock = $this->getMockBuilder(GatewayConfig::class)
@@ -67,7 +67,8 @@ class VaultDetailsHandlerTest extends \PHPUnit\Framework\TestCase
             $this->paymentExtensionFactoryMock,
             $this->vaultHelperMock,
             $this->gatewayConfigMock,
-            $this->subjectReaderMock
+            $this->subjectReaderMock,
+            $this->createMock(\Swarming\SubscribePro\Platform\Service\PaymentProfile::class)
         );
     }
 
@@ -111,8 +112,8 @@ class VaultDetailsHandlerTest extends \PHPUnit\Framework\TestCase
 
         $transactionMock = $this->getMockBuilder(TransactionInterface::class)->getMock();
         $transactionMock->expects($this->once())->method('getRefPaymentProfileId')->willReturn(1231);
-        $transactionMock->expects($this->any())->method('getCreditcardYear')->willReturn('2020');
-        $transactionMock->expects($this->any())->method('getCreditcardMonth')->willReturn('04');
+        $transactionMock->method('getCreditcardYear')->willReturn('2020');
+        $transactionMock->method('getCreditcardMonth')->willReturn('04');
         $transactionMock->expects($this->once())->method('getCreditcardType')->willReturn('visa');
         $transactionMock->expects($this->once())->method('getCreditcardLastDigits')->willReturn(4444);
 
@@ -122,7 +123,7 @@ class VaultDetailsHandlerTest extends \PHPUnit\Framework\TestCase
         $paymentTokenMock->expects($this->once())->method('setTokenDetails')->with($tokenDetails);
 
         $extensionAttributesMock = $this->getMockBuilder(OrderPaymentExtensionInterface::class)
-            ->setMethods(['setVaultPaymentToken', 'getVaultPaymentToken'])
+            ->onlyMethods(['setVaultPaymentToken', 'getVaultPaymentToken'])
             ->getMock();
         $extensionAttributesMock->expects($this->once())
             ->method('setVaultPaymentToken')
@@ -183,8 +184,8 @@ class VaultDetailsHandlerTest extends \PHPUnit\Framework\TestCase
 
         $transactionMock = $this->getMockBuilder(TransactionInterface::class)->getMock();
         $transactionMock->expects($this->once())->method('getRefPaymentProfileId')->willReturn(1231);
-        $transactionMock->expects($this->any())->method('getCreditcardYear')->willReturn('2020');
-        $transactionMock->expects($this->any())->method('getCreditcardMonth')->willReturn('04');
+        $transactionMock->method('getCreditcardYear')->willReturn('2020');
+        $transactionMock->method('getCreditcardMonth')->willReturn('04');
         $transactionMock->expects($this->once())->method('getCreditcardType')->willReturn('visa');
         $transactionMock->expects($this->once())->method('getCreditcardLastDigits')->willReturn(4444);
 
@@ -194,7 +195,7 @@ class VaultDetailsHandlerTest extends \PHPUnit\Framework\TestCase
         $paymentTokenMock->expects($this->once())->method('setTokenDetails')->with($tokenDetails);
 
         $extensionAttributesMock = $this->getMockBuilder(OrderPaymentExtensionInterface::class)
-            ->setMethods(['setVaultPaymentToken', 'getVaultPaymentToken'])
+            ->onlyMethods(['setVaultPaymentToken', 'getVaultPaymentToken'])
             ->getMock();
         $extensionAttributesMock->expects($this->once())
             ->method('setVaultPaymentToken')
