@@ -38,11 +38,9 @@ class CaptureStrategyCommandTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    /**
-     * @expectedException \LogicException
-     */
     public function testFailToExecuteIfPaymentInfoNotValid()
     {
+        $this->expectException(\LogicException::class);
         $commandSubject = ['subject'];
         $paymentInfoMock = $this->getMockBuilder('Magento\Payment\Model\InfoInterface')->getMock();
         $paymentDOMock = $this->getMockBuilder('Magento\Payment\Gateway\Data\PaymentDataObjectInterface')->getMock();
@@ -62,6 +60,7 @@ class CaptureStrategyCommandTest extends \PHPUnit\Framework\TestCase
      * @param int|null $parentTransactionId
      * @param string $command
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('executeDataProvider')]
     public function testExecute($commandSubject, $parentTransactionId, $command)
     {
         $paymentInfoMock = $this->getMockBuilder('Magento\Sales\Model\Order\Payment')
@@ -93,7 +92,7 @@ class CaptureStrategyCommandTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function executeDataProvider()
+    public static function executeDataProvider()
     {
         return [
             'With parent transaction id' => [

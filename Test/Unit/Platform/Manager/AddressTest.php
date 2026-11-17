@@ -39,18 +39,9 @@ class AddressTest extends \PHPUnit\Framework\TestCase
         $addressMock->expects($this->once())->method('getCompany')->willReturn('company');
         $addressMock->expects($this->once())->method('getCountryId')->willReturn('UA');
         $addressMock->expects($this->once())->method('getRegionCode')->willReturn('region');
-        $addressMock->expects($this->at(4))
+        $addressMock->expects($this->exactly(3))
             ->method('getStreetLine')
-            ->with(1)
-            ->willReturn('line 1');
-        $addressMock->expects($this->at(5))
-            ->method('getStreetLine')
-            ->with(2)
-            ->willReturn('line 2');
-        $addressMock->expects($this->at(6))
-            ->method('getStreetLine')
-            ->with(3)
-            ->willReturn('line 3');
+            ->willReturnMap([[1, 'line 1'], [2, 'line 2'], [3, 'line 3']]);
         $addressMock->expects($this->once())->method('getPostcode')->willReturn('000');
         $addressMock->expects($this->once())->method('getTelephone')->willReturn('066');
         $addressMock->expects($this->once())->method('getFirstname')->willReturn('first');
@@ -62,9 +53,9 @@ class AddressTest extends \PHPUnit\Framework\TestCase
         $platformAddressMock->expects($this->once())->method('setCompany')->with('company')->willReturnSelf();
         $platformAddressMock->expects($this->once())->method('setCountry')->with('UA')->willReturnSelf();
         $platformAddressMock->expects($this->once())->method('setRegion')->with('region')->willReturnSelf();
-        $platformAddressMock->expects($this->at(4))->method('setStreet1')->with('line 1')->willReturnSelf();
-        $platformAddressMock->expects($this->at(5))->method('setStreet2')->with('line 2')->willReturnSelf();
-        $platformAddressMock->expects($this->at(6))->method('setStreet3')->with('line 3')->willReturnSelf();
+        $platformAddressMock->expects($this->once())->method('setStreet1')->with('line 1')->willReturnSelf();
+        $platformAddressMock->expects($this->once())->method('setStreet2')->with('line 2')->willReturnSelf();
+        $platformAddressMock->expects($this->once())->method('setStreet3')->with('line 3')->willReturnSelf();
         $platformAddressMock->expects($this->once())
             ->method('setCustomerId')
             ->with($platformCustomerId)

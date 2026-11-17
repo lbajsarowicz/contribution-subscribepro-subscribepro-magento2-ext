@@ -2,175 +2,135 @@
 
 namespace Swarming\SubscribePro\Test\Unit\Controller\Webhook;
 
-use Magento\Backend\App\Action\Context;
-use Magento\Framework\HTTP\PhpEnvironment\RemoteAddress;
+use Magento\Framework\App\Action\Context;
+use Magento\Framework\App\Request\Http;
+use Magento\Framework\Controller\Result\Json;
+use Magento\Framework\Controller\Result\JsonFactory;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Psr\Log\LoggerInterface;
 use SubscribePro\Service\Webhook\EventInterface;
 use Swarming\SubscribePro\Controller\Webhook\Index;
-use Swarming\SubscribePro\Model\Config\Advanced as AdvancedConfig;
-use Swarming\SubscribePro\Platform\Service\Webhook as WebhookService;
-use Swarming\SubscribePro\Platform\Webhook\Processor as WebhookProcessor;
+use Swarming\SubscribePro\Model\Config\Advanced;
+use Swarming\SubscribePro\Platform\Service\Webhook;
+use Swarming\SubscribePro\Platform\Webhook\Processor;
 
 class IndexTest extends \PHPUnit\Framework\TestCase
 {
-    /**
-     * @var \Swarming\SubscribePro\Controller\Webhook\Index
-     */
     protected $indexController;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Swarming\SubscribePro\Platform\Webhook\Processor
-     */
     protected $webhookProcessorMock;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Swarming\SubscribePro\Platform\Service\Webhook
-     */
     protected $platformWebhookServiceMock;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Swarming\SubscribePro\Model\Config\Advanced
-     */
     protected $advancedConfigMock;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Framework\HTTP\PhpEnvironment\RemoteAddress
-     */
-    protected $remoteAddressMock;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Psr\Log\LoggerInterface
-     */
+    protected $requestMock;
+    protected $resultMock;
     protected $loggerMock;
 
     protected function setUp(): void
     {
-        $contextMock = $this->getMockBuilder(Context::class)->disableOriginalConstructor()->getMock();
-        $this->webhookProcessorMock = $this->getMockBuilder(WebhookProcessor::class)
+        $context = $this->getMockBuilder(Context::class)->disableOriginalConstructor()->getMock();
+        $this->webhookProcessorMock = $this->getMockBuilder(Processor::class)
             ->disableOriginalConstructor()->getMock();
-        $this->platformWebhookServiceMock = $this->getMockBuilder(WebhookService::class)
+        $this->platformWebhookServiceMock = $this->getMockBuilder(Webhook::class)
             ->disableOriginalConstructor()->getMock();
-        $this->advancedConfigMock = $this->getMockBuilder(AdvancedConfig::class)
+        $this->advancedConfigMock = $this->getMockBuilder(Advanced::class)
             ->disableOriginalConstructor()->getMock();
-        $this->remoteAddressMock = $this->getMockBuilder(RemoteAddress::class)
-            ->disableOriginalConstructor()->getMock();
-        $this->loggerMock = $this->getMockBuilder(LoggerInterface::class)->getMock();
+        $this->requestMock = $this->getMockBuilder(Http::class)->disableOriginalConstructor()->getMock();
+        $this->resultMock = $this->getMockBuilder(Json::class)->disableOriginalConstructor()->getMock();
+        $factory = $this->getMockBuilder(JsonFactory::class)->disableOriginalConstructor()->getMock();
+        $factory->expects($this->once())->method('create')->willReturn($this->resultMock);
+        $this->loggerMock = $this->createMock(LoggerInterface::class);
 
         $this->indexController = new Index(
-            $contextMock,
+            $context,
             $this->webhookProcessorMock,
             $this->platformWebhookServiceMock,
             $this->advancedConfigMock,
-            $this->remoteAddressMock,
+            $factory,
+            $this->requestMock,
             $this->loggerMock
         );
     }
 
-    public function testExecuteWebhookIdIsNotAllowed()
+    /**
+     * @dataProvider invalidHashDataProvider
+     */
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalidHashDataProvider')]
+    public function testExecuteRejectsInvalidHash($hash)
     {
-        $ip = '10.10.10.231';
-
-        $this->remoteAddressMock->expects($this->once())
-            ->method('getRemoteAddress')
-            ->willReturn($ip);
-
-        $this->advancedConfigMock->expects($this->once())
-            ->method('isWebhookIpAllowed')
-            ->with($ip)
-            ->willReturn(false);
-
+        $this->configureHash($hash);
         $this->platformWebhookServiceMock->expects($this->never())->method('readEvent');
         $this->webhookProcessorMock->expects($this->never())->method('processEvent');
+        $this->expectResponse(403, [
+            'error_message' => __('Could not validate webhook source using hash. Check secret key.')
+        ]);
+        $this->assertSame($this->resultMock, $this->indexController->execute());
+    }
 
-        $this->indexController->execute();
+    public static function invalidHashDataProvider()
+    {
+        return [
+            'missing' => [false],
+            'incorrect' => ['invalid'],
+            'different body' => [hash_hmac('sha256', 'other body', 'secret')],
+            'different secret' => [hash_hmac('sha256', 'body', 'other secret')]
+        ];
     }
 
     public function testExecuteIfNoEvent()
     {
-        $ip = '10.10.15.232';
-
-        $this->remoteAddressMock->expects($this->once())
-            ->method('getRemoteAddress')
-            ->willReturn($ip);
-
-        $this->advancedConfigMock->expects($this->once())
-            ->method('isWebhookIpAllowed')
-            ->with($ip)
-            ->willReturn(true);
-
-        $this->platformWebhookServiceMock->expects($this->once())
-            ->method('readEvent')
-            ->willReturn(false);
-
+        $this->configureHash(hash_hmac('sha256', 'body', 'secret'));
+        $this->platformWebhookServiceMock->expects($this->once())->method('readEvent')->willReturn(false);
         $this->webhookProcessorMock->expects($this->never())->method('processEvent');
-
-        $this->indexController->execute();
+        $this->expectResponse(400, [
+            'error_message' => __('Webhook data is malformed or did not contain a valid event')
+        ]);
+        $this->assertSame($this->resultMock, $this->indexController->execute());
     }
 
     public function testExecuteIfFailToProcessEvent()
     {
         $exception = new \InvalidArgumentException('error');
+        $this->configureEvent()->willThrowException($exception);
+        $this->loggerMock->expects($this->once())->method('critical')->with($exception);
+        $this->expectResponse(500, ['error_message' => 'error']);
+        $this->assertSame($this->resultMock, $this->indexController->execute());
+    }
 
-        $ip = '10.10.15.232';
-        $webhookEvent = $this->createWebhookEventMock();
-
-        $this->remoteAddressMock->expects($this->once())
-            ->method('getRemoteAddress')
-            ->willReturn($ip);
-
-        $this->advancedConfigMock->expects($this->once())
-            ->method('isWebhookIpAllowed')
-            ->with($ip)
-            ->willReturn(true);
-
-        $this->platformWebhookServiceMock->expects($this->once())
-            ->method('readEvent')
-            ->willReturn($webhookEvent);
-
-        $this->webhookProcessorMock->expects($this->once())
-            ->method('processEvent')
-            ->with($webhookEvent)
-            ->willThrowException($exception);
-
-        $this->loggerMock->expects($this->once())
-            ->method('critical')
-            ->with($exception);
-
-        $this->indexController->execute();
+    public function testExecuteIfEventIsNotFound()
+    {
+        $exception = new NoSuchEntityException(__('Event not found.'));
+        $this->configureEvent()->willThrowException($exception);
+        $this->loggerMock->expects($this->never())->method('critical');
+        $this->expectResponse(404, ['error_message' => 'Event not found.']);
+        $this->assertSame($this->resultMock, $this->indexController->execute());
     }
 
     public function testExecute()
     {
-        $ip = '10.10.15.232';
-        $webhookEvent = $this->createWebhookEventMock();
-
-        $this->remoteAddressMock->expects($this->once())
-            ->method('getRemoteAddress')
-            ->willReturn($ip);
-
-        $this->advancedConfigMock->expects($this->once())
-            ->method('isWebhookIpAllowed')
-            ->with($ip)
-            ->willReturn(true);
-
-        $this->platformWebhookServiceMock->expects($this->once())
-            ->method('readEvent')
-            ->willReturn($webhookEvent);
-
-        $this->webhookProcessorMock->expects($this->once())
-            ->method('processEvent')
-            ->with($webhookEvent);
-
+        $this->configureEvent();
         $this->loggerMock->expects($this->never())->method('critical');
-
-        $this->indexController->execute();
+        $this->expectResponse(200, null);
+        $this->assertSame($this->resultMock, $this->indexController->execute());
     }
 
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\SubscribePro\Service\Webhook\EventInterface
-     */
-    private function createWebhookEventMock()
+    private function configureHash($hash)
     {
-        return $this->getMockBuilder(EventInterface::class)->getMock();
+        $this->advancedConfigMock->expects($this->once())->method('getWebhookSecretKey')->willReturn('secret');
+        $this->requestMock->expects($this->once())->method('getHeader')
+            ->with(Index::WEBHOOK_HASH_HEADER_KEY)->willReturn($hash);
+        $this->requestMock->expects($this->once())->method('getContent')->willReturn('body');
+    }
+
+    private function configureEvent()
+    {
+        $this->configureHash(hash_hmac('sha256', 'body', 'secret'));
+        $event = $this->createMock(EventInterface::class);
+        $this->platformWebhookServiceMock->expects($this->once())->method('readEvent')->willReturn($event);
+        return $this->webhookProcessorMock->expects($this->once())->method('processEvent')->with($event);
+    }
+
+    private function expectResponse($status, $data)
+    {
+        $this->resultMock->expects($this->once())->method('setHttpResponseCode')->with($status)->willReturnSelf();
+        $this->resultMock->expects($this->once())->method('setData')->with($data)->willReturnSelf();
     }
 }

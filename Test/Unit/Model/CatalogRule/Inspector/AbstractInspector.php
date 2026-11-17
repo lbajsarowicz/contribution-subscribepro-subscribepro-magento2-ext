@@ -3,7 +3,7 @@
 namespace Swarming\SubscribePro\Test\Unit\Model\CatalogRule\Inspector;
 
 use DateTime;
-use Magento\Catalog\Model\Product;
+use Swarming\SubscribePro\Test\Unit\Catalog\Product;
 use Magento\Catalog\Model\Product\Type\Price as PriceModel;
 use Magento\CatalogRule\Observer\RulePricesStorage;
 use Magento\Customer\Model\Session as CustomerSession;
@@ -199,13 +199,12 @@ abstract class AbstractInspector extends \PHPUnit\Framework\TestCase
     {
         return $this->getMockBuilder(Product::class)
             ->disableOriginalConstructor()
-            ->setMethods([
+            ->onlyMethods([
                 'getId',
                 'getStoreId',
                 'hasCustomerGroupId',
                 'getCustomerGroupId',
                 'getCustomOption',
-                '__wakeup',
                 'getPrice',
                 'getPriceModel'
             ])

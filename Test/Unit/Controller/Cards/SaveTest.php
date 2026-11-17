@@ -4,8 +4,8 @@ namespace Swarming\SubscribePro\Test\Unit\Controller\Cards;
 
 use Magento\Backend\App\Action\Context;
 use Magento\Customer\Model\Session as CustomerSession;
-use Magento\Framework\App\RequestInterface;
-use Magento\Framework\Controller\Result\Redirect as ResultRedirect;
+use Magento\Framework\App\Request\Http;
+use Magento\Framework\Controller\Result\Json as ResultJson;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Data\Form\FormKey\Validator as FormKeyValidator;
 use Magento\Framework\Exception\LocalizedException;
@@ -14,6 +14,7 @@ use Magento\Store\Model\StoreManagerInterface as StoreManager;
 use Magento\Vault\Api\Data\PaymentTokenInterface;
 use Swarming\SubscribePro\Controller\Cards\Save;
 use Swarming\SubscribePro\Gateway\Command\AuthorizeCommand as WalletAuthorizeCommand;
+use Swarming\SubscribePro\Gateway\Command\VoidCommand;
 use Swarming\SubscribePro\Gateway\Config\Config as GatewayConfig;
 use Swarming\SubscribePro\Gateway\Config\VaultConfig;
 use Swarming\SubscribePro\Model\Vault\Form as VaultForm;
@@ -77,15 +78,16 @@ class SaveTest extends \PHPUnit\Framework\TestCase
     protected $resultFactoryMock;
 
     /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Framework\App\RequestInterface
+     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Framework\App\Request\Http
      */
     protected $requestMock;
 
     protected function setUp(): void
     {
-        $this->requestMock = $this->getMockBuilder(RequestInterface::class)
-            ->setMethods(['getParam', 'getParams', 'isPost'])
-            ->getMockForAbstractClass();
+        $this->requestMock = $this->getMockBuilder(Http::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['getParam', 'getParams', 'isPost'])
+            ->getMock();
         $this->resultFactoryMock = $this->getMockBuilder(ResultFactory::class)->disableOriginalConstructor()->getMock();
         $this->messageManagerMock = $this->getMockBuilder(ManagerInterface::class)->getMock();
 
@@ -120,6 +122,7 @@ class SaveTest extends \PHPUnit\Framework\TestCase
             $this->gatewayConfig,
             $this->vaultFormValidator,
             $this->walletAuthorizeCommand,
+            $this->getMockBuilder(VoidCommand::class)->disableOriginalConstructor()->getMock(),
             $this->storeManager
         );
     }
@@ -130,12 +133,13 @@ class SaveTest extends \PHPUnit\Framework\TestCase
      * @param bool $isActiveVaultConfig
      * @dataProvider executeIfBadRequestParamsDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('executeIfBadRequestParamsDataProvider')]
     public function testExecuteIfBadRequestParams($isFormValid, $isPost, $isActiveVaultConfig)
     {
-        $resultMock = $this->createResultRedirectMock();
+        $resultMock = $this->createResultJsonMock();
         $resultMock->expects($this->once())
-            ->method('setPath')
-            ->with('vault/cards/listaction')
+            ->method('setData')
+            ->with(['state' => 'failed'])
             ->willReturnSelf();
 
         $this->formKeyValidatorMock->expects($this->once())
@@ -143,17 +147,17 @@ class SaveTest extends \PHPUnit\Framework\TestCase
             ->with($this->requestMock)
             ->willReturn($isFormValid);
 
-        $this->requestMock->expects($this->any())
+        $this->requestMock
             ->method('isPost')
             ->willReturn($isPost);
 
-        $this->platformVaultConfigMock->expects($this->any())
+        $this->platformVaultConfigMock
             ->method('isActive')
             ->willReturn($isActiveVaultConfig);
 
         $this->resultFactoryMock->expects($this->once())
             ->method('create')
-            ->with(ResultFactory::TYPE_REDIRECT)
+            ->with(ResultFactory::TYPE_JSON)
             ->willReturn($resultMock);
 
         $this->assertSame($resultMock, $this->saveController->execute());
@@ -162,7 +166,7 @@ class SaveTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function executeIfBadRequestParamsDataProvider()
+    public static function executeIfBadRequestParamsDataProvider()
     {
         return [
             'Form is not valid' => [
@@ -191,16 +195,12 @@ class SaveTest extends \PHPUnit\Framework\TestCase
         $params = ['request params'];
         $customerId = 123;
 
-        $resultMock = $this->createResultRedirectMock();
+        $resultMock = $this->createResultJsonMock();
         $resultMock->expects($this->once())
-            ->method('setPath')
-            ->with('*/*/edit', [])
+            ->method('setData')
+            ->with(['state' => 'failed'])
             ->willReturnSelf();
 
-        $this->requestMock->expects($this->once())
-            ->method('getParam')
-            ->with(PaymentTokenInterface::PUBLIC_HASH)
-            ->willReturn(null);
         $this->requestMock->expects($this->once())
             ->method('getParams')
             ->willReturn($params);
@@ -228,7 +228,7 @@ class SaveTest extends \PHPUnit\Framework\TestCase
 
         $this->resultFactoryMock->expects($this->once())
             ->method('create')
-            ->with(ResultFactory::TYPE_REDIRECT)
+            ->with(ResultFactory::TYPE_JSON)
             ->willReturn($resultMock);
 
         $this->messageManagerMock->expects($this->once())
@@ -245,16 +245,12 @@ class SaveTest extends \PHPUnit\Framework\TestCase
         $params = ['request params'];
         $customerId = 53445;
 
-        $resultMock = $this->createResultRedirectMock();
+        $resultMock = $this->createResultJsonMock();
         $resultMock->expects($this->once())
-            ->method('setPath')
-            ->with('vault/cards/listaction')
+            ->method('setData')
+            ->with(['state' => 'failed'])
             ->willReturnSelf();
 
-        $this->requestMock->expects($this->once())
-            ->method('getParam')
-            ->with(PaymentTokenInterface::PUBLIC_HASH)
-            ->willReturn(null);
         $this->requestMock->expects($this->once())
             ->method('getParams')
             ->willReturn($params);
@@ -282,7 +278,7 @@ class SaveTest extends \PHPUnit\Framework\TestCase
 
         $this->resultFactoryMock->expects($this->once())
             ->method('create')
-            ->with(ResultFactory::TYPE_REDIRECT)
+            ->with(ResultFactory::TYPE_JSON)
             ->willReturn($resultMock);
 
         $this->messageManagerMock->expects($this->once())
@@ -301,16 +297,12 @@ class SaveTest extends \PHPUnit\Framework\TestCase
         $createData = ['key' => 'value'];
         $customerId = 53445;
 
-        $resultMock = $this->createResultRedirectMock();
+        $resultMock = $this->createResultJsonMock();
         $resultMock->expects($this->once())
-            ->method('setPath')
-            ->with('vault/cards/listaction')
+            ->method('setData')
+            ->with(['state' => 'succeeded', 'redirect' => '/'])
             ->willReturnSelf();
 
-        $this->requestMock->expects($this->once())
-            ->method('getParam')
-            ->with(PaymentTokenInterface::PUBLIC_HASH)
-            ->willReturn(null);
         $this->requestMock->expects($this->once())
             ->method('getParams')
             ->willReturn($params);
@@ -337,17 +329,15 @@ class SaveTest extends \PHPUnit\Framework\TestCase
 
         $this->resultFactoryMock->expects($this->once())
             ->method('create')
-            ->with(ResultFactory::TYPE_REDIRECT)
+            ->with(ResultFactory::TYPE_JSON)
             ->willReturn($resultMock);
 
-        $this->messageManagerMock->expects($this->once())
-            ->method('addSuccessMessage')
-            ->with(__('The credit card is saved.'));
+        $this->messageManagerMock->expects($this->never())->method('addSuccessMessage');
 
         $this->assertSame($resultMock, $this->saveController->execute());
     }
 
-    public function testExecuteIfFailToUpdateProfile()
+    public function testExecuteIfFailToCreateProfileWithPublicHash()
     {
         $message = 'error';
         $exception = new LocalizedException(__($message));
@@ -359,19 +349,15 @@ class SaveTest extends \PHPUnit\Framework\TestCase
             'key' => 'value',
             'key2' => 'value2'
         ];
-        $updateData = ['key' => 'value', 'key2' => 'value2'];
+        $createData = ['key' => 'value', 'key2' => 'value2'];
         $customerId = 53445;
 
-        $resultMock = $this->createResultRedirectMock();
+        $resultMock = $this->createResultJsonMock();
         $resultMock->expects($this->once())
-            ->method('setPath')
-            ->with('*/*/edit', ['_query' => [PaymentTokenInterface::PUBLIC_HASH => $publicHash]])
+            ->method('setData')
+            ->with(['state' => 'failed'])
             ->willReturnSelf();
 
-        $this->requestMock->expects($this->once())
-            ->method('getParam')
-            ->with(PaymentTokenInterface::PUBLIC_HASH)
-            ->willReturn($publicHash);
         $this->requestMock->expects($this->once())
             ->method('getParams')
             ->willReturn($params);
@@ -393,13 +379,13 @@ class SaveTest extends \PHPUnit\Framework\TestCase
             ->willReturn($customerId);
 
         $this->vaultFormMock->expects($this->once())
-            ->method('updateProfile')
-            ->with($publicHash, $updateData, $customerId)
+            ->method('createProfile')
+            ->with([PaymentTokenInterface::PUBLIC_HASH => $publicHash] + $createData, $customerId)
             ->willThrowException($exception);
 
         $this->resultFactoryMock->expects($this->once())
             ->method('create')
-            ->with(ResultFactory::TYPE_REDIRECT)
+            ->with(ResultFactory::TYPE_JSON)
             ->willReturn($resultMock);
 
         $this->messageManagerMock->expects($this->once())
@@ -409,7 +395,7 @@ class SaveTest extends \PHPUnit\Framework\TestCase
         $this->assertSame($resultMock, $this->saveController->execute());
     }
 
-    public function testExecuteIfFailToUpdateProfileWithGeneralException()
+    public function testExecuteIfFailToCreateProfileWithPublicHashAndGeneralException()
     {
         $exception = new \InvalidArgumentException('error message');
 
@@ -419,19 +405,15 @@ class SaveTest extends \PHPUnit\Framework\TestCase
             'form_key' => 'key',
             'key' => 'value'
         ];
-        $updateData = ['key' => 'value'];
+        $createData = ['key' => 'value'];
         $customerId = 53445;
 
-        $resultMock = $this->createResultRedirectMock();
+        $resultMock = $this->createResultJsonMock();
         $resultMock->expects($this->once())
-            ->method('setPath')
-            ->with('vault/cards/listaction')
+            ->method('setData')
+            ->with(['state' => 'failed'])
             ->willReturnSelf();
 
-        $this->requestMock->expects($this->once())
-            ->method('getParam')
-            ->with(PaymentTokenInterface::PUBLIC_HASH)
-            ->willReturn($publicHash);
         $this->requestMock->expects($this->once())
             ->method('getParams')
             ->willReturn($params);
@@ -453,13 +435,13 @@ class SaveTest extends \PHPUnit\Framework\TestCase
             ->willReturn($customerId);
 
         $this->vaultFormMock->expects($this->once())
-            ->method('updateProfile')
-            ->with($publicHash, $updateData, $customerId)
+            ->method('createProfile')
+            ->with([PaymentTokenInterface::PUBLIC_HASH => $publicHash] + $createData, $customerId)
             ->willThrowException($exception);
 
         $this->resultFactoryMock->expects($this->once())
             ->method('create')
-            ->with(ResultFactory::TYPE_REDIRECT)
+            ->with(ResultFactory::TYPE_JSON)
             ->willReturn($resultMock);
 
         $this->messageManagerMock->expects($this->once())
@@ -469,7 +451,7 @@ class SaveTest extends \PHPUnit\Framework\TestCase
         $this->assertSame($resultMock, $this->saveController->execute());
     }
 
-    public function testExecuteIfUpdateProfile()
+    public function testExecuteIfCreateProfileWithPublicHash()
     {
         $publicHash = 'hash';
         $params = [
@@ -477,19 +459,15 @@ class SaveTest extends \PHPUnit\Framework\TestCase
             'form_key' => 'key',
             'key' => 'value'
         ];
-        $updateData = ['key' => 'value'];
+        $createData = ['key' => 'value'];
         $customerId = 53445;
 
-        $resultMock = $this->createResultRedirectMock();
+        $resultMock = $this->createResultJsonMock();
         $resultMock->expects($this->once())
-            ->method('setPath')
-            ->with('vault/cards/listaction')
+            ->method('setData')
+            ->with(['state' => 'succeeded', 'redirect' => '/'])
             ->willReturnSelf();
 
-        $this->requestMock->expects($this->once())
-            ->method('getParam')
-            ->with(PaymentTokenInterface::PUBLIC_HASH)
-            ->willReturn($publicHash);
         $this->requestMock->expects($this->once())
             ->method('getParams')
             ->willReturn($params);
@@ -511,26 +489,24 @@ class SaveTest extends \PHPUnit\Framework\TestCase
             ->willReturn($customerId);
 
         $this->vaultFormMock->expects($this->once())
-            ->method('updateProfile')
-            ->with($publicHash, $updateData, $customerId);
+            ->method('createProfile')
+            ->with([PaymentTokenInterface::PUBLIC_HASH => $publicHash] + $createData, $customerId);
 
         $this->resultFactoryMock->expects($this->once())
             ->method('create')
-            ->with(ResultFactory::TYPE_REDIRECT)
+            ->with(ResultFactory::TYPE_JSON)
             ->willReturn($resultMock);
 
-        $this->messageManagerMock->expects($this->once())
-            ->method('addSuccessMessage')
-            ->with(__('The credit card is saved.'));
+        $this->messageManagerMock->expects($this->never())->method('addSuccessMessage');
 
         $this->assertSame($resultMock, $this->saveController->execute());
     }
 
     /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Framework\Controller\Result\Redirect
+     * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Framework\Controller\Result\Json
      */
-    private function createResultRedirectMock()
+    private function createResultJsonMock()
     {
-        return $this->getMockBuilder(ResultRedirect::class)->disableOriginalConstructor()->getMock();
+        return $this->getMockBuilder(ResultJson::class)->disableOriginalConstructor()->getMock();
     }
 }

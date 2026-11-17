@@ -29,13 +29,14 @@ class VaultPurchaseCommandTest extends AbstractCommand
     }
 
     /**
-     * @expectedException \Magento\Payment\Gateway\Command\CommandException
-     * @expectedExceptionMessage Transaction has been declined. Please try again later.
      * @dataProvider executeIfFailToProcessTransactionDataProvider
      * @param array $requestData
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('executeIfFailToProcessTransactionDataProvider')]
     public function testExecuteIfFailToProcessTransaction(array $requestData)
     {
+        $this->expectException(\Magento\Payment\Gateway\Command\CommandException::class);
+        $this->expectExceptionMessage('Transaction has been declined. Please try again later.');
         $exception = new \InvalidArgumentException('Payment profile was not passed');
         $this->executeSetPlatformWebsite($this->subjectReaderMock, $this->storeManagerMock, $this->platformMock);
         $this->processTransactionFail($requestData, $exception);
@@ -45,7 +46,7 @@ class VaultPurchaseCommandTest extends AbstractCommand
     /**
      * @return array
      */
-    public function executeIfFailToProcessTransactionDataProvider()
+    public static function executeIfFailToProcessTransactionDataProvider()
     {
         return [
             'Payment profile id is not set' => [

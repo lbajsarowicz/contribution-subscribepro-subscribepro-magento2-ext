@@ -47,6 +47,7 @@ class DefaultInspectorTest extends AbstractInspector
      * @param string $dateString
      * @dataProvider isAppliedDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('isAppliedDataProvider')]
     public function testIsApplied(
         $isApplied,
         $rulePrice,
@@ -77,7 +78,7 @@ class DefaultInspectorTest extends AbstractInspector
     /**
      * @return array
      */
-    public function isAppliedDataProvider()
+    public static function isAppliedDataProvider()
     {
         return [
             'applied' => [

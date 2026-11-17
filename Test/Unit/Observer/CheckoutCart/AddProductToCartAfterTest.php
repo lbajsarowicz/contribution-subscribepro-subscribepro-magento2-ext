@@ -3,7 +3,7 @@
 namespace Swarming\SubscribePro\Test\Unit\Observer\CheckoutCart;
 
 use Magento\Catalog\Api\ProductRepositoryInterface;
-use Magento\Catalog\Model\Product;
+use Swarming\SubscribePro\Test\Unit\Catalog\Product;
 use Magento\Framework\App\State;
 use Magento\Framework\App\State as AppState;
 use Magento\Framework\Event\Observer;
@@ -325,15 +325,15 @@ class AddProductToCartAfterTest extends \PHPUnit\Framework\TestCase
             ->method('isSubscriptionEnabled')
             ->willReturnMap([[$product1Mock, true], [$product2Mock, true]]);
 
-        $this->platformProductManagerMock->expects($this->at(0))
+        $this->platformProductManagerMock->expects($this->exactly(2))
             ->method('getProduct')
-            ->with($product1Sku)
-            ->willThrowException($exception);
-
-        $this->platformProductManagerMock->expects($this->at(1))
-            ->method('getProduct')
-            ->with($product2Sku)
-            ->willReturn($platformProduct2Mock);
+            ->willReturnCallback(function ($sku) use ($product1Sku, $product2Sku, $platformProduct2Mock, $exception) {
+                if ($sku === $product1Sku) {
+                    throw $exception;
+                }
+                $this->assertSame($product2Sku, $sku);
+                return $platformProduct2Mock;
+            });
 
         $this->appStateMock->expects($this->once())
             ->method('getMode')
@@ -362,6 +362,7 @@ class AddProductToCartAfterTest extends \PHPUnit\Framework\TestCase
      * @param string $appMode
      * @dataProvider failToExecuteIfNoFirstPlatformProductDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('failToExecuteIfNoFirstPlatformProductDataProvider')]
     public function testFailToExecuteIfNoFirstPlatformProduct(
         $product1Sku,
         $product2Sku,
@@ -414,15 +415,15 @@ class AddProductToCartAfterTest extends \PHPUnit\Framework\TestCase
             ->method('isSubscriptionEnabled')
             ->willReturnMap([[$product1Mock, true], [$product2Mock, true]]);
 
-        $this->platformProductManagerMock->expects($this->at(0))
+        $this->platformProductManagerMock->expects($this->exactly(2))
             ->method('getProduct')
-            ->with($product1Sku)
-            ->willThrowException($exception);
-
-        $this->platformProductManagerMock->expects($this->at(1))
-            ->method('getProduct')
-            ->with($product2Sku)
-            ->willReturn($platformProduct2Mock);
+            ->willReturnCallback(function ($sku) use ($product1Sku, $product2Sku, $platformProduct2Mock, $exception) {
+                if ($sku === $product1Sku) {
+                    throw $exception;
+                }
+                $this->assertSame($product2Sku, $sku);
+                return $platformProduct2Mock;
+            });
 
         $this->appStateMock->expects($this->once())
             ->method('getMode')
@@ -439,7 +440,7 @@ class AddProductToCartAfterTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function failToExecuteIfNoFirstPlatformProductDataProvider()
+    public static function failToExecuteIfNoFirstPlatformProductDataProvider()
     {
         return [
             'Default mode' => [
@@ -484,6 +485,7 @@ class AddProductToCartAfterTest extends \PHPUnit\Framework\TestCase
      * @param array $item2Warnings
      * @dataProvider executeDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('executeDataProvider')]
     public function testExecute(
         $product1Sku,
         $product2Sku,
@@ -539,25 +541,16 @@ class AddProductToCartAfterTest extends \PHPUnit\Framework\TestCase
             ->method('isSubscriptionEnabled')
             ->willReturnMap([[$product1Mock, true], [$product2Mock, true]]);
 
-        $this->platformProductManagerMock->expects($this->at(0))
+        $this->platformProductManagerMock->expects($this->exactly(2))
             ->method('getProduct')
-            ->with($product1Sku)
-            ->willReturn($platformProduct1Mock);
+            ->willReturnMap([[$product1Sku, null, $platformProduct1Mock], [$product2Sku, null, $platformProduct2Mock]]);
 
-        $this->platformProductManagerMock->expects($this->at(1))
-            ->method('getProduct')
-            ->with($product2Sku)
-            ->willReturn($platformProduct2Mock);
-
-        $this->subscriptionOptionUpdaterMock->expects($this->at(0))
+        $this->subscriptionOptionUpdaterMock->expects($this->exactly(2))
             ->method('update')
-            ->with($quoteItem1Mock, $platformProduct1Mock, $subscription1Option, $subscription1Interval)
-            ->willReturn($item1Warnings);
-
-        $this->subscriptionOptionUpdaterMock->expects($this->at(1))
-            ->method('update')
-            ->with($quoteItem2Mock, $platformProduct2Mock, $subscription2Option, $subscription2Interval)
-            ->willReturn($item2Warnings);
+            ->willReturnMap([
+                [$quoteItem1Mock, $platformProduct1Mock, $subscription1Option, $subscription1Interval, null, $item1Warnings],
+                [$quoteItem2Mock, $platformProduct2Mock, $subscription2Option, $subscription2Interval, null, $item2Warnings]
+            ]);
 
         $warningsMap = array_map(function ($warning) {
             return [$warning];
@@ -572,7 +565,7 @@ class AddProductToCartAfterTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function executeDataProvider()
+    public static function executeDataProvider()
     {
         return [
             'Empty subscription params for first product' => [
@@ -634,7 +627,7 @@ class AddProductToCartAfterTest extends \PHPUnit\Framework\TestCase
     {
         return $this->getMockBuilder(Product::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getParentItemId', 'getData', '__wakeup'])
+            ->onlyMethods(['getParentItemId', 'getData'])
             ->getMock();
     }
 

@@ -28,10 +28,10 @@ class CcTypeTest extends \PHPUnit\Framework\TestCase
     {
         $result = $this->ccTypeSource->getAllowedTypes();
 
-        $this->assertInternalType('array', $result);
+        $this->assertIsArray($result);
         $this->assertNotEmpty($result);
 
         $randomEl = $result[array_rand($result)];
-        $this->assertInternalType('string', $randomEl);
+        $this->assertIsString($randomEl);
     }
 }
