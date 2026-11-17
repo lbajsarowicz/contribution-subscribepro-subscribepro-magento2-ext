@@ -34,9 +34,9 @@ class PaymentDetailsHandlerTest extends \PHPUnit\Framework\TestCase
         $response = ['response'];
 
         $transactionMock = $this->getMockBuilder(TransactionInterface::class)->getMock();
-        $transactionMock->expects($this->any())->method('getId')->willReturn(1231);
-        $transactionMock->expects($this->any())->method('getAvsCode')->willReturn('active');
-        $transactionMock->expects($this->any())->method('getCvvCode')->willReturn(123);
+        $transactionMock->method('getId')->willReturn(1231);
+        $transactionMock->method('getAvsCode')->willReturn('active');
+        $transactionMock->method('getCvvCode')->willReturn(123);
         $transactionMock->expects($this->once())->method('getType')->willReturn('Capture');
         $transactionMock->expects($this->once())->method('getGatewayType')->willReturn('braintree');
         $transactionMock->expects($this->once())->method('getAvsMessage')->willReturn('avs message');
@@ -50,30 +50,13 @@ class PaymentDetailsHandlerTest extends \PHPUnit\Framework\TestCase
         $paymentInfoMock->expects($this->once())->method('setLastTransId')->with(1231);
         $paymentInfoMock->expects($this->once())->method('setCcAvsStatus')->with('active');
         $paymentInfoMock->expects($this->once())->method('setCcCidStatus')->with(123);
-        $paymentInfoMock->expects($this->at(4))
+        $additionalInformation = [];
+        $paymentInfoMock->expects($this->exactly(10))
             ->method('setAdditionalInformation')
-            ->with('transaction_id', 1231);
-        $paymentInfoMock->expects($this->at(5))
-            ->method('setAdditionalInformation')
-            ->with('transaction_type', 'Capture');
-        $paymentInfoMock->expects($this->at(6))
-            ->method('setAdditionalInformation')
-            ->with(TransactionInterface::GATEWAY_TYPE, 'braintree');
-        $paymentInfoMock->expects($this->at(7))
-            ->method('setAdditionalInformation')
-            ->with(TransactionInterface::AVS_CODE, 'active');
-        $paymentInfoMock->expects($this->at(8))
-            ->method('setAdditionalInformation')
-            ->with(TransactionInterface::AVS_MESSAGE, 'avs message');
-        $paymentInfoMock->expects($this->at(9))
-            ->method('setAdditionalInformation')
-            ->with(TransactionInterface::CVV_CODE, 123);
-        $paymentInfoMock->expects($this->at(10))
-            ->method('setAdditionalInformation')
-            ->with(TransactionInterface::CVV_MESSAGE, 'cvv message');
-        $paymentInfoMock->expects($this->at(11))
-            ->method('setAdditionalInformation')
-            ->with(TransactionInterface::RESPONSE_MESSAGE, 'response message');
+            ->willReturnCallback(function ($key, $value) use (&$additionalInformation, $paymentInfoMock) {
+                $additionalInformation[] = [$key, $value];
+                return $paymentInfoMock;
+            });
 
         $paymentDOMock = $this->getMockBuilder(PaymentDataObjectInterface::class)->getMock();
         $paymentDOMock->expects($this->once())->method('getPayment')->willReturn($paymentInfoMock);
@@ -89,5 +72,18 @@ class PaymentDetailsHandlerTest extends \PHPUnit\Framework\TestCase
             ->willReturn($transactionMock);
 
         $this->paymentDetailsHandler->handle($handlingSubject, $response);
+
+        $this->assertSame([
+            ['transaction_id', 1231],
+            ['transaction_type', 'Capture'],
+            [TransactionInterface::GATEWAY_TYPE, 'braintree'],
+            [TransactionInterface::AVS_CODE, 'active'],
+            [TransactionInterface::AVS_MESSAGE, 'avs message'],
+            [TransactionInterface::CVV_CODE, 123],
+            [TransactionInterface::CVV_MESSAGE, 'cvv message'],
+            [TransactionInterface::RESPONSE_MESSAGE, 'response message'],
+            [TransactionInterface::STATE, null],
+            [TransactionInterface::TOKEN, null],
+        ], $additionalInformation);
     }
 }

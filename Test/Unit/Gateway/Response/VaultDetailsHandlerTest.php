@@ -122,9 +122,7 @@ class VaultDetailsHandlerTest extends \PHPUnit\Framework\TestCase
         $paymentTokenMock->expects($this->once())->method('setExpiresAt')->with($expiresAt);
         $paymentTokenMock->expects($this->once())->method('setTokenDetails')->with($tokenDetails);
 
-        $extensionAttributesMock = $this->getMockBuilder(OrderPaymentExtensionInterface::class)
-            ->onlyMethods(['setVaultPaymentToken', 'getVaultPaymentToken'])
-            ->getMock();
+        $extensionAttributesMock = $this->createMock(OrderPaymentExtensionInterface::class);
         $extensionAttributesMock->expects($this->once())
             ->method('setVaultPaymentToken')
             ->with($paymentTokenMock);
@@ -194,9 +192,7 @@ class VaultDetailsHandlerTest extends \PHPUnit\Framework\TestCase
         $paymentTokenMock->expects($this->once())->method('setExpiresAt')->with($expiresAt);
         $paymentTokenMock->expects($this->once())->method('setTokenDetails')->with($tokenDetails);
 
-        $extensionAttributesMock = $this->getMockBuilder(OrderPaymentExtensionInterface::class)
-            ->onlyMethods(['setVaultPaymentToken', 'getVaultPaymentToken'])
-            ->getMock();
+        $extensionAttributesMock = $this->createMock(OrderPaymentExtensionInterface::class);
         $extensionAttributesMock->expects($this->once())
             ->method('setVaultPaymentToken')
             ->with($paymentTokenMock);
