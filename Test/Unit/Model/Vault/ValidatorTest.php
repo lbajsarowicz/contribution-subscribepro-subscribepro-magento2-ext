@@ -2,6 +2,7 @@
 
 namespace Swarming\SubscribePro\Test\Unit\Model\Vault;
 
+use Magento\Customer\Block\Widget\Telephone;
 use Magento\Directory\Helper\Data as DirectoryDataHelper;
 use Magento\Directory\Model\Region;
 use Magento\Directory\Model\RegionFactory;
@@ -33,20 +34,26 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
         $this->directoryDataMock = $this->getMockBuilder(DirectoryDataHelper::class)
             ->disableOriginalConstructor()->getMock();
 
+        $telephoneWidgetMock = $this->getMockBuilder(Telephone::class)
+            ->disableOriginalConstructor()->getMock();
+        $telephoneWidgetMock->method('isRequired')->willReturn(true);
+
         $this->validator = new Validator(
             $this->regionFactoryMock,
-            $this->directoryDataMock
+            $this->directoryDataMock,
+            $telephoneWidgetMock
         );
     }
 
     /**
      * @param array $profileData
      * @dataProvider validateIfProfileDataNotValidDataProvider
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     * @expectedExceptionMessage Not all fields are filled.
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('validateIfProfileDataNotValidDataProvider')]
     public function testValidateIfProfileDataNotValid($profileData)
     {
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
+        $this->expectExceptionMessage('Not all fields are filled.');
         $this->directoryDataMock->expects($this->never())->method('isRegionRequired');
         $this->directoryDataMock->expects($this->never())->method('isZipCodeOptional');
         $this->regionFactoryMock->expects($this->never())->method('create');
@@ -57,7 +64,7 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function validateIfProfileDataNotValidDataProvider()
+    public static function validateIfProfileDataNotValidDataProvider()
     {
         return [
             'Without credit card month' => [
@@ -94,15 +101,16 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
      * @param bool $isRegionRequired
      * @param bool $isZipCodeOptional
      * @dataProvider validateIfNotValidAddressWithoutRegionUpdateDataProvider
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     * @expectedExceptionMessage Not all billing address fields are filled.
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('validateIfNotValidAddressWithoutRegionUpdateDataProvider')]
     public function testValidateIfNotValidAddressWithoutRegionUpdate(
         $profileData,
         $country,
         $isRegionRequired,
         $isZipCodeOptional
     ) {
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
+        $this->expectExceptionMessage('Not all billing address fields are filled.');
         $this->directoryDataMock->expects($this->any())->method('isRegionRequired')
             ->with($country)
             ->willReturn($isRegionRequired);
@@ -118,7 +126,7 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function validateIfNotValidAddressWithoutRegionUpdateDataProvider()
+    public static function validateIfNotValidAddressWithoutRegionUpdateDataProvider()
     {
         return [
             'Without billing address first name:with region_id:without country' => [
@@ -270,6 +278,7 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
      * @param bool $isZipCodeOptional
      * @dataProvider validateIfValidAddressWithoutRegionUpdateDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('validateIfValidAddressWithoutRegionUpdateDataProvider')]
     public function testValidateIfValidAddressWithoutRegionUpdate(
         $profileData,
         $country,
@@ -291,7 +300,7 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function validateIfValidAddressWithoutRegionUpdateDataProvider()
+    public static function validateIfValidAddressWithoutRegionUpdateDataProvider()
     {
         return [
             'Without billing address region: region not required:valid' => [
@@ -360,9 +369,8 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
      * @param bool $isRegionRequired
      * @param bool $isZipCodeOptional
      * @dataProvider validateWithRegionUpdateIfAddressNotValidDataProvider
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     * @expectedExceptionMessage Not all billing address fields are filled.
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('validateWithRegionUpdateIfAddressNotValidDataProvider')]
     public function testValidateWithRegionUpdateIfAddressNotValid(
         $profileData,
         $regionId,
@@ -371,10 +379,12 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
         $isRegionRequired,
         $isZipCodeOptional
     ) {
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
+        $this->expectExceptionMessage('Not all billing address fields are filled.');
         $regionMock = $this->createRegionMock();
         $regionMock->expects($this->once())->method('load')->with($this->equalTo($regionId));
-        $regionMock->expects($this->any())->method('getCode')->willReturn($regionCode);
-        $regionMock->expects($this->any())->method('getCountryId')->willReturn($regionCountryId);
+        $regionMock->setCode($regionCode);
+        $regionMock->setCountryId($regionCountryId);
 
         $this->directoryDataMock->expects($this->any())->method('isRegionRequired')
             ->with($profileData[PaymentProfileInterface::BILLING_ADDRESS][AddressInterface::COUNTRY])
@@ -393,7 +403,7 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function validateWithRegionUpdateIfAddressNotValidDataProvider()
+    public static function validateWithRegionUpdateIfAddressNotValidDataProvider()
     {
         return [
             'Region code is null: region is required' => [
@@ -451,6 +461,7 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
      * @param array $result
      * @dataProvider validateWithRegionUpdateDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('validateWithRegionUpdateDataProvider')]
     public function testValidateWithRegionUpdate(
         $profileData,
         $regionId,
@@ -462,8 +473,8 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
     ) {
         $regionMock = $this->createRegionMock();
         $regionMock->expects($this->once())->method('load')->with($this->equalTo($regionId));
-        $regionMock->expects($this->any())->method('getCode')->willReturn($regionCode);
-        $regionMock->expects($this->any())->method('getCountryId')->willReturn($regionCountryId);
+        $regionMock->setCode($regionCode);
+        $regionMock->setCountryId($regionCountryId);
 
         $this->directoryDataMock->expects($this->any())->method('isRegionRequired')
             ->with($profileData[PaymentProfileInterface::BILLING_ADDRESS][AddressInterface::COUNTRY])
@@ -482,7 +493,7 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function validateWithRegionUpdateDataProvider()
+    public static function validateWithRegionUpdateDataProvider()
     {
         return [
             'Region code is null: region not required:valid' => [
@@ -599,7 +610,7 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
     {
         return $this->getMockBuilder(Region::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getCountryId', 'getCode', 'load', '__wakeup'])
+            ->onlyMethods(['load', '__wakeup'])
             ->getMock();
     }
 }

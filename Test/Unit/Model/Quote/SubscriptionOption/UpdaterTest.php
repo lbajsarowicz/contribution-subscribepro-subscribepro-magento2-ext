@@ -120,10 +120,6 @@ class UpdaterTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     * @expectedExceptionMessage The product is not configured properly, please contact customer support.
-     */
     public function testFailToUpdateIfSubscriptionOnlyAndEmptyIntervals()
     {
         $this->expectException(\Magento\Framework\Exception\LocalizedException::class);

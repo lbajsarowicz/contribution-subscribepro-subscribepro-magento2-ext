@@ -86,6 +86,7 @@ class AddressAttributesTest extends \PHPUnit\Framework\TestCase
      * @param array $expectedAttributeMap
      * @dataProvider getElementsIfAttributeNotConvertedToSelectDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getElementsIfAttributeNotConvertedToSelectDataProvider')]
     public function testGetElementsIfAttributeNotConvertedToSelect($attributeCode, $attributeMap, $expectedAttributeMap)
     {
         $attributeMock = $this->createEavAttributeMock();
@@ -108,7 +109,7 @@ class AddressAttributesTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getElementsIfAttributeNotConvertedToSelectDataProvider()
+    public static function getElementsIfAttributeNotConvertedToSelectDataProvider()
     {
         return [
             'Attribute without label' => [

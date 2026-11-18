@@ -2,15 +2,15 @@
 
 namespace Swarming\SubscribePro\Test\Unit\Observer\Checkout;
 
-use Magento\Checkout\Model\Session;
 use Magento\Framework\Event\Observer;
-use Magento\Quote\Model\Quote;
+use Magento\Quote\Model\Quote\Item\CartItemOptionsProcessor;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\Data\OrderPaymentInterface;
 use Magento\Store\Api\Data\WebsiteInterface;
 use Magento\Store\Model\Store;
 use Psr\Log\LoggerInterface;
 use Swarming\SubscribePro\Gateway\Config\ConfigProvider;
+use Swarming\SubscribePro\Helper\ThirdPartyPayment;
 use Swarming\SubscribePro\Model\Config\General as GeneralConfig;
 use Swarming\SubscribePro\Model\Quote\SubscriptionCreator;
 use Swarming\SubscribePro\Observer\Checkout\SubmitAllAfter;
@@ -42,15 +42,20 @@ class SubmitAllAfterTest extends \PHPUnit\Framework\TestCase
      */
     protected $loggerMock;
 
+    /**
+     * @var \PHPUnit\Framework\MockObject\MockObject|\Swarming\SubscribePro\Helper\ThirdPartyPayment
+     */
+    protected $thirdPartyPaymentMock;
+
     protected function setUp(): void
     {
         $this->generalConfigMock = $this->getMockBuilder(GeneralConfig::class)
             ->disableOriginalConstructor()
             ->getMock();
 
-        $this->checkoutSessionMock = $this->getMockBuilder(Session::class)
+        $this->checkoutSessionMock = $this->getMockBuilder(CheckoutSession::class)
             ->disableOriginalConstructor()
-            ->setMethods(['setData'])
+            ->onlyMethods(['setData'])
             ->getMock();
 
         $this->subscriptionCreatorMock = $this->getMockBuilder(SubscriptionCreator::class)
@@ -59,11 +64,17 @@ class SubmitAllAfterTest extends \PHPUnit\Framework\TestCase
 
         $this->loggerMock = $this->getMockBuilder(LoggerInterface::class)->getMock();
 
+        $this->thirdPartyPaymentMock = $this->getMockBuilder(ThirdPartyPayment::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+
         $this->checkoutSubmitAllAfter = new SubmitAllAfter(
             $this->generalConfigMock,
             $this->checkoutSessionMock,
             $this->subscriptionCreatorMock,
-            $this->loggerMock
+            $this->getMockBuilder(CartItemOptionsProcessor::class)->disableOriginalConstructor()->getMock(),
+            $this->loggerMock,
+            $this->thirdPartyPaymentMock
         );
     }
 
@@ -93,14 +104,17 @@ class SubmitAllAfterTest extends \PHPUnit\Framework\TestCase
             ->method('getCustomerId');
 
         $observerMock = $this->createObserverMock();
-        $observerMock->expects($this->at(0))
+        $getDataCalls = [
+            ['quote', $quoteMock],
+            ['order', $orderMock],
+        ];
+        $observerMock->expects($this->exactly(2))
             ->method('getData')
-            ->with('quote')
-            ->willReturn($quoteMock);
-        $observerMock->expects($this->at(1))
-            ->method('getData')
-            ->with('order')
-            ->willReturn($orderMock);
+            ->willReturnCallback(function ($arg) use (&$getDataCalls) {
+                [$expectedArg, $result] = array_shift($getDataCalls);
+                $this->assertEquals($expectedArg, $arg);
+                return $result;
+            });
 
         $this->generalConfigMock->expects($this->once())
             ->method('isEnabled')
@@ -143,8 +157,14 @@ class SubmitAllAfterTest extends \PHPUnit\Framework\TestCase
         $quoteMock->expects($this->once())
             ->method('getStore')
             ->willReturn($storeMock);
-        $quoteMock->expects($this->never())
-            ->method('getCustomerId');
+        $quoteMock->expects($this->once())
+            ->method('getCustomerId')
+            ->willReturn(123);
+
+        $this->thirdPartyPaymentMock->expects($this->once())
+            ->method('isThirdPartyPaymentMethodAllowed')
+            ->with('any_payment_except_subscribe_pro', 0)
+            ->willReturn(false);
 
         $observerMock = $this->createObserverMock();
         $observerMock->expects($this->exactly(2))
@@ -171,15 +191,9 @@ class SubmitAllAfterTest extends \PHPUnit\Framework\TestCase
     {
         $websiteCode = 'some_website_code';
 
-        $paymentMock = $this->createPaymentMock();
-        $paymentMock->expects($this->once())
-            ->method('getMethod')
-            ->willReturn(ConfigProvider::CODE);
-
         $orderMock = $this->createOrderMock();
-        $orderMock->expects($this->once())
-            ->method('getPayment')
-            ->willReturn($paymentMock);
+        $orderMock->expects($this->never())
+            ->method('getPayment');
 
         $websiteMock = $this->createWebsiteMock();
         $websiteMock->expects($this->once())
@@ -273,7 +287,16 @@ class SubmitAllAfterTest extends \PHPUnit\Framework\TestCase
             ->with($quoteMock, $orderMock)
             ->willThrowException($exception);
 
-        $this->checkoutSessionMock->expects($this->never())->method('setData');
+        $setDataCalls = [
+            [SubscriptionCreator::CREATED_SUBSCRIPTION_IDS, []],
+            [SubscriptionCreator::FAILED_SUBSCRIPTION_COUNT, 0],
+        ];
+        $this->checkoutSessionMock->expects($this->exactly(2))
+            ->method('setData')
+            ->willReturnCallback(function ($key, $value) use (&$setDataCalls) {
+                $this->assertEquals(array_shift($setDataCalls), [$key, $value]);
+                return $this->checkoutSessionMock;
+            });
 
         $this->loggerMock->expects($this->once())
             ->method('critical')
@@ -338,12 +361,16 @@ class SubmitAllAfterTest extends \PHPUnit\Framework\TestCase
                 SubscriptionCreator::FAILED_SUBSCRIPTION_COUNT => $failedSubscriptionsCount
             ]);
 
+        $setDataCalls = [
+            [SubscriptionCreator::CREATED_SUBSCRIPTION_IDS, $createdSubscriptionIds],
+            [SubscriptionCreator::FAILED_SUBSCRIPTION_COUNT, $failedSubscriptionsCount],
+        ];
         $this->checkoutSessionMock->expects($this->exactly(2))
             ->method('setData')
-            ->withConsecutive(
-                [SubscriptionCreator::CREATED_SUBSCRIPTION_IDS, $createdSubscriptionIds],
-                [SubscriptionCreator::FAILED_SUBSCRIPTION_COUNT, $failedSubscriptionsCount]
-            );
+            ->willReturnCallback(function ($key, $value) use (&$setDataCalls) {
+                $this->assertEquals(array_shift($setDataCalls), [$key, $value]);
+                return $this->checkoutSessionMock;
+            });
 
         $this->loggerMock->expects($this->never())
             ->method('critical');
@@ -396,9 +423,12 @@ class SubmitAllAfterTest extends \PHPUnit\Framework\TestCase
      */
     private function createQuoteMock()
     {
-        return $this->getMockBuilder(Quote::class)
+        $quoteMock = $this->getMockBuilder(CustomerQuote::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getStore', 'getCustomerId', '__wakeup'])
+            ->onlyMethods(['getStore', 'getCustomerId', 'getAllItems', '__wakeup'])
             ->getMock();
+        $quoteMock->method('getAllItems')->willReturn([]);
+
+        return $quoteMock;
     }
 }

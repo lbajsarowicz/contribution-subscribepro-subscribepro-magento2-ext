@@ -5,7 +5,6 @@ namespace Swarming\SubscribePro\Test\Unit\Model\Quote\SubscriptionOption;
 use Magento\Framework\DataObject;
 use Magento\Framework\DataObject\Factory as DataObjectFactory;
 use Magento\Quote\Api\Data\ProductOptionExtensionFactory;
-use Magento\Quote\Api\Data\ProductOptionExtensionInterface;
 use Magento\Quote\Api\Data\ProductOptionInterface;
 use Magento\Quote\Model\Quote\ProductOptionFactory;
 use Swarming\SubscribePro\Api\Data\SubscriptionOptionInterface;
@@ -430,7 +429,7 @@ class OptionProcessorTest extends \PHPUnit\Framework\TestCase
      */
     private function createExtensionAttributesMock()
     {
-        return $this->getMockBuilder(ProductOptionExtensionInterface::class)->getMock();
+        return $this->getMockBuilder(SubscriptionOptionExtensionAttributes::class)->getMock();
     }
 
     /**

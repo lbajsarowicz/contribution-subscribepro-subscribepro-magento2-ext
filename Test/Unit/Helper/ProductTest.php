@@ -35,6 +35,7 @@ class ProductTest extends \PHPUnit\Framework\TestCase
      * @param bool $result
      * @dataProvider isSubscriptionEnabledDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('isSubscriptionEnabledDataProvider')]
     public function testIsSubscriptionEnabled($value, $result)
     {
         $attributeMock = $this->getMockBuilder(AttributeInterface::class)->getMock();
@@ -52,7 +53,7 @@ class ProductTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function isSubscriptionEnabledDataProvider()
+    public static function isSubscriptionEnabledDataProvider()
     {
         return [
             'Value not set:false' => [

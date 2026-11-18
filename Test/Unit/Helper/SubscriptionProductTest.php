@@ -434,14 +434,14 @@ class SubscriptionProductTest extends \PHPUnit\Framework\TestCase
             ->with($subscriptionMock)
             ->willReturn($subscriptionOptionItemMock);
 
-        $this->priceCurrencyMock->expects($this->at(0))
+        $convertCalls = [[$finalPrice, $convertedFinalPrice], [$platformDiscount, $discount]];
+        $this->priceCurrencyMock->expects($this->exactly(2))
             ->method('convertAndRound')
-            ->with($finalPrice)
-            ->willReturn($convertedFinalPrice);
-        $this->priceCurrencyMock->expects($this->at(1))
-            ->method('convertAndRound')
-            ->with($platformDiscount)
-            ->willReturn($discount);
+            ->willReturnCallback(function ($amount) use (&$convertCalls) {
+                [$expectedAmount, $result] = array_shift($convertCalls);
+                $this->assertEquals($expectedAmount, $amount);
+                return $result;
+            });
 
         $this->catalogRuleInspectorMock->expects($this->once())
             ->method('isApplied')
@@ -560,14 +560,14 @@ class SubscriptionProductTest extends \PHPUnit\Framework\TestCase
                 [$subscription2Mock, $subscriptionOptionItem2Mock]
             ]);
 
-        $this->priceCurrencyMock->expects($this->at(0))
+        $convertCalls = [[$finalPrice, $convertedFinalPrice], [$platformDiscount, $discount]];
+        $this->priceCurrencyMock->expects($this->exactly(2))
             ->method('convertAndRound')
-            ->with($finalPrice)
-            ->willReturn($convertedFinalPrice);
-        $this->priceCurrencyMock->expects($this->at(1))
-            ->method('convertAndRound')
-            ->with($platformDiscount)
-            ->willReturn($discount);
+            ->willReturnCallback(function ($amount) use (&$convertCalls) {
+                [$expectedAmount, $result] = array_shift($convertCalls);
+                $this->assertEquals($expectedAmount, $amount);
+                return $result;
+            });
 
         $this->catalogRuleInspectorMock->expects($this->once())
             ->method('isApplied')

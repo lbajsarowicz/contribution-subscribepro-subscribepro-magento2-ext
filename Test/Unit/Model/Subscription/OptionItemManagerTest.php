@@ -270,7 +270,7 @@ class OptionItemManagerTest extends \PHPUnit\Framework\TestCase
     {
         return $this->getMockBuilder(ProductTypeInstance::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['processConfiguration'])
+            ->onlyMethods(['processConfiguration', 'deleteTypeSpecificData'])
             ->getMock();
     }
 

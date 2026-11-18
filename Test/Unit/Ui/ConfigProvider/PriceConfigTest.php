@@ -55,6 +55,7 @@ class PriceConfigTest extends \PHPUnit\Framework\TestCase
      * @param array $result
      * @dataProvider getConfigDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getConfigDataProvider')]
     public function testGetConfig(
         $discountTax,
         $applyTaxAfterDiscount,
@@ -91,7 +92,7 @@ class PriceConfigTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getConfigDataProvider()
+    public static function getConfigDataProvider()
     {
         return [
             'Price display type including tax' => [

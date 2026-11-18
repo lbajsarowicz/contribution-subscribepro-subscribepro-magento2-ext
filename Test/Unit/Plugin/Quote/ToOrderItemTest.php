@@ -2,7 +2,7 @@
 
 namespace Swarming\SubscribePro\Test\Unit\Plugin\Quote;
 
-use Magento\Quote\Model\Quote\Item\AbstractItem;
+use Magento\Quote\Model\Quote\Item as QuoteItem;
 use Magento\Quote\Model\Quote\Item\ToOrderItem as QuoteToOrderItem;
 use Magento\Sales\Model\Order\Item as OrderItem;
 use Swarming\SubscribePro\Helper\OrderItem as OrderItemHelper;
@@ -34,10 +34,9 @@ class ToOrderItemTest extends \PHPUnit\Framework\TestCase
 
         $orderItemMock = $this->getMockBuilder(OrderItem::class)->disableOriginalConstructor()->getMock();
         $subjectMock = $this->getMockBuilder(QuoteToOrderItem::class)->disableOriginalConstructor()->getMock();
-        $quoteItemMock = $this->getMockBuilder(AbstractItem::class)
+        $quoteItemMock = $this->getMockBuilder(QuoteItem::class)
             ->disableOriginalConstructor()
-            ->setMethods(['__wakeup'])
-            ->getMockForAbstractClass();
+            ->getMock();
 
         $proceed = function ($item, $data) use ($orderItemMock) {
             return $orderItemMock;

@@ -59,6 +59,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
      * @param array|string $result
      * @dataProvider getConfigIfCachedDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getConfigIfCachedDataProvider')]
     public function testGetConfigIfCached($websiteId, $key, $config, $result)
     {
         $this->configStorageMock->expects($this->once())
@@ -75,7 +76,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getConfigIfCachedDataProvider()
+    public static function getConfigIfCachedDataProvider()
     {
         return [
             'Without key' => [
@@ -107,6 +108,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
      * @param array|string $result
      * @dataProvider getConfigDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getConfigDataProvider')]
     public function testGetConfig($websiteId, $expectedWebsiteId, $key, $config, $result)
     {
         $sdkMock = $this->getMockBuilder(\SubscribePro\Sdk::class)
@@ -137,7 +139,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getConfigDataProvider()
+    public static function getConfigDataProvider()
     {
         return [
             'With website Id' => [

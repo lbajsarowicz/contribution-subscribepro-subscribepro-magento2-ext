@@ -58,7 +58,7 @@ class SubscriptionsDirectoryDataProcessor implements LayoutProcessorInterface
         \Magento\Directory\Model\ResourceModel\Country\CollectionFactory $countryCollection,
         CollectionFactory $regionCollection,
         DirectoryHelper $directoryHelper,
-        StoreManagerInterface $storeManager = null
+        ?StoreManagerInterface $storeManager = null
     ) {
         $this->countryCollectionFactory = $countryCollection;
         $this->regionCollectionFactory = $regionCollection;

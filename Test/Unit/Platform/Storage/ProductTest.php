@@ -264,15 +264,17 @@ class ProductTest extends TestCase
             ->with($websiteId)
             ->willReturn($lifeTime);
 
-        $this->serializerMock->expects(self::at(0))
+        $serializeCalls = [
+            [[$sku, $websiteCode], json_encode([$sku, $websiteCode])],
+            [$platformProductData, $platformProductDataSerialized],
+        ];
+        $this->serializerMock->expects(self::exactly(2))
             ->method('serialize')
-            ->with([$sku, $websiteCode])
-            ->willReturn(json_encode([$sku, $websiteCode]));
-
-        $this->serializerMock->expects(self::at(1))
-            ->method('serialize')
-            ->with($platformProductData)
-            ->willReturn($platformProductDataSerialized);
+            ->willReturnCallback(function ($data) use (&$serializeCalls) {
+                [$expectedData, $result] = array_shift($serializeCalls);
+                self::assertEquals($expectedData, $data);
+                return $result;
+            });
 
         $this->cacheMock->expects(self::once())
             ->method('save')
@@ -319,15 +321,17 @@ class ProductTest extends TestCase
 
         $this->advancedConfigMock->expects(self::never())->method('getCacheLifeTime');
 
-        $this->serializerMock->expects(self::at(0))
+        $serializeCalls = [
+            [[$sku, $websiteCode], json_encode([$sku, $websiteCode])],
+            [$platformProductData, $platformProductDataSerialized],
+        ];
+        $this->serializerMock->expects(self::exactly(2))
             ->method('serialize')
-            ->with([$sku, $websiteCode])
-            ->willReturn(json_encode([$sku, $websiteCode]));
-
-        $this->serializerMock->expects(self::at(1))
-            ->method('serialize')
-            ->with($platformProductData)
-            ->willReturn($platformProductDataSerialized);
+            ->willReturnCallback(function ($data) use (&$serializeCalls) {
+                [$expectedData, $result] = array_shift($serializeCalls);
+                self::assertEquals($expectedData, $data);
+                return $result;
+            });
 
         $this->cacheMock->expects(self::once())
             ->method('save')

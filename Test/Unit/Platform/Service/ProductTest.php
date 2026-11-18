@@ -33,6 +33,7 @@ class ProductTest extends AbstractService
      * @param int $expectedWebsiteId
      * @dataProvider createProductDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('createProductDataProvider')]
     public function testCreateProduct($websiteId, $expectedWebsiteId)
     {
         $platformProductMock = $this->createPlatformProductMock();
@@ -52,7 +53,7 @@ class ProductTest extends AbstractService
     /**
      * @return array
      */
-    public function createProductDataProvider()
+    public static function createProductDataProvider()
     {
         return [
             'With website Id' => [

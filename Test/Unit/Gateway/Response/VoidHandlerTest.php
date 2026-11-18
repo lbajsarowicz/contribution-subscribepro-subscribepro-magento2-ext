@@ -33,6 +33,7 @@ class VoidHandlerTest extends \PHPUnit\Framework\TestCase
      * @dataProvider handleWithInvalidPaymentDataProvider
      * @param mixed $payment
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('handleWithInvalidPaymentDataProvider')]
     public function testHandleWithInvalidPayment($payment)
     {
         $handlingSubject = ['subject'];
@@ -54,7 +55,7 @@ class VoidHandlerTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function handleWithInvalidPaymentDataProvider()
+    public static function handleWithInvalidPaymentDataProvider()
     {
         return [
             'Payment is null' => ['payment' => null],

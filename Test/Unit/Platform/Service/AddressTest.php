@@ -33,6 +33,7 @@ class AddressTest extends AbstractService
      * @param int $expectedWebsiteId
      * @dataProvider createAddressDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('createAddressDataProvider')]
     public function testCreateAddress($websiteId, $expectedWebsiteId)
     {
         $platformAddressMock = $this->createPlatformAddressMock();
@@ -52,7 +53,7 @@ class AddressTest extends AbstractService
     /**
      * @return array
      */
-    public function createAddressDataProvider()
+    public static function createAddressDataProvider()
     {
         return [
             'With website Id' => [

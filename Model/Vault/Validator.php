@@ -73,8 +73,9 @@ class Validator
     protected function validateBillingAddress(array $addressData)
     {
         $isValid = true;
-        $isRegionRequired = $this->directoryData->isRegionRequired($addressData[AddressInterface::COUNTRY]);
-        $isZipCodeOptional = $this->directoryData->isZipCodeOptional($addressData[AddressInterface::COUNTRY]);
+        $country = $addressData[AddressInterface::COUNTRY] ?? null;
+        $isRegionRequired = $this->directoryData->isRegionRequired($country);
+        $isZipCodeOptional = $this->directoryData->isZipCodeOptional($country);
         $isPhoneRequired = $this->telephoneWidget->isRequired();
         if (empty($addressData[AddressInterface::FIRST_NAME])
             || empty($addressData[AddressInterface::LAST_NAME])

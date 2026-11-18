@@ -55,12 +55,10 @@ class ProductTest extends \PHPUnit\Framework\TestCase
         $this->assertSame($platformProductMock, $this->productManager->getProduct($sku, $websiteId));
     }
 
-    /**
-     * @expectedException \Magento\Framework\Exception\NoSuchEntityException
-     * @expectedExceptionMessage Product is not found on Subscribe Pro platform.
-     */
     public function testFailToGetProductIfNotFound()
     {
+        $this->expectException(\Magento\Framework\Exception\NoSuchEntityException::class);
+        $this->expectExceptionMessage('Product is not found on Subscribe Pro platform.');
         $sku = 'sku';
         $websiteId = 23;
 

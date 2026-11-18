@@ -8,7 +8,7 @@ use Magento\Quote\Model\Quote\Item\CartItemOptionsProcessor as QuoteCartItemOpti
 use Swarming\SubscribePro\Model\Quote\SubscriptionOption\OptionProcessor as SubscriptionOptionProcessor;
 use Swarming\SubscribePro\Plugin\Quote\CartItemOptionsProcessor;
 
-class CartItemOptionsProcessorTest extends \PHPUnit\Framework\TestCase
+class CartItemOptionProcessorTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * @var \Swarming\SubscribePro\Plugin\Quote\CartItemOptionsProcessor
@@ -177,7 +177,7 @@ class CartItemOptionsProcessorTest extends \PHPUnit\Framework\TestCase
      */
     private function createCartItemMock()
     {
-        return $this->getMockBuilder(CartItemInterface::class)->getMockForAbstractClass();
+        return $this->getMockBuilder(CartItemInterface::class)->getMock();
     }
 
     /**

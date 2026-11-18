@@ -26,7 +26,10 @@ class TransactionTest extends AbstractService
             ->disableOriginalConstructor()
             ->getMock();
 
-        $this->transactionService = new Transaction($this->platformMock, $this->name);
+        $metaServiceMock = $this->createStub(\Swarming\SubscribePro\Model\MetaService::class);
+        $metaServiceMock->method('getData')->willReturn([]);
+
+        $this->transactionService = new Transaction($this->platformMock, $this->name, $metaServiceMock);
     }
 
     /**
@@ -34,6 +37,7 @@ class TransactionTest extends AbstractService
      * @param int $expectedWebsiteId
      * @dataProvider createTransactionDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('createTransactionDataProvider')]
     public function testCreateTransaction($websiteId, $expectedWebsiteId)
     {
         $transactionMock = $this->createTransactionMock();
@@ -53,7 +57,7 @@ class TransactionTest extends AbstractService
     /**
      * @return array
      */
-    public function createTransactionDataProvider()
+    public static function createTransactionDataProvider()
     {
         return [
             'With website Id' => [
@@ -142,12 +146,14 @@ class TransactionTest extends AbstractService
     /**
      * @param int $websiteId
      * @param string $token
-     * @param \PHPUnit_Framework_MockObject_MockObject $transactionMock
-     * @param \PHPUnit_Framework_MockObject_MockObject $platformAddressMock
+     * @param bool $withAddress
      * @dataProvider authorizeByTokenDataProvider
      */
-    public function testAuthorizeByToken($websiteId, $token, $transactionMock, $platformAddressMock)
+    #[\PHPUnit\Framework\Attributes\DataProvider('authorizeByTokenDataProvider')]
+    public function testAuthorizeByToken($websiteId, $token, $withAddress)
     {
+        $transactionMock = $this->createTransactionMock();
+        $platformAddressMock = $withAddress ? $this->createPlatformAddressMock() : null;
         $this->initService($this->transactionPlatformService, $websiteId);
 
         $this->transactionPlatformService->expects($this->once())
@@ -164,20 +170,18 @@ class TransactionTest extends AbstractService
     /**
      * @return array
      */
-    public function authorizeByTokenDataProvider()
+    public static function authorizeByTokenDataProvider()
     {
         return [
             'Without address' => [
                 'websiteId' => 122,
                 'token' => 'token',
-                'transactionMock' => $this->createTransactionMock(),
-                'addressMock' => null,
+                'withAddress' => false,
             ],
             'With address' => [
                 'websiteId' => 122,
                 'token' => 'token',
-                'transactionMock' => $this->createTransactionMock(),
-                'addressMock' => $this->createPlatformAddressMock()
+                'withAddress' => true,
             ]
         ];
     }
@@ -185,12 +189,14 @@ class TransactionTest extends AbstractService
     /**
      * @param int $websiteId
      * @param string $token
-     * @param \PHPUnit_Framework_MockObject_MockObject $transactionMock
-     * @param \PHPUnit_Framework_MockObject_MockObject $platformAddressMock
+     * @param bool $withAddress
      * @dataProvider purchaseByTokenDataProvider
      */
-    public function testPurchaseByToken($websiteId, $token, $transactionMock, $platformAddressMock)
+    #[\PHPUnit\Framework\Attributes\DataProvider('purchaseByTokenDataProvider')]
+    public function testPurchaseByToken($websiteId, $token, $withAddress)
     {
+        $transactionMock = $this->createTransactionMock();
+        $platformAddressMock = $withAddress ? $this->createPlatformAddressMock() : null;
         $this->initService($this->transactionPlatformService, $websiteId);
 
         $this->transactionPlatformService->expects($this->once())
@@ -207,20 +213,18 @@ class TransactionTest extends AbstractService
     /**
      * @return array
      */
-    public function purchaseByTokenDataProvider()
+    public static function purchaseByTokenDataProvider()
     {
         return [
             'Without address' => [
                 'websiteId' => 122,
                 'token' => 'token',
-                'transactionMock' => $this->createTransactionMock(),
-                'addressMock' => null,
+                'withAddress' => false,
             ],
             'With address' => [
                 'websiteId' => 122,
                 'token' => 'token',
-                'transactionMock' => $this->createTransactionMock(),
-                'addressMock' => $this->createPlatformAddressMock()
+                'withAddress' => true,
             ]
         ];
     }
@@ -228,11 +232,13 @@ class TransactionTest extends AbstractService
     /**
      * @param int $websiteId
      * @param int $transactionId
-     * @param \PHPUnit_Framework_MockObject_MockObject $transactionMock
+     * @param bool $withTransaction
      * @dataProvider captureDataProvider
      */
-    public function testCapture($websiteId, $transactionId, $transactionMock)
+    #[\PHPUnit\Framework\Attributes\DataProvider('captureDataProvider')]
+    public function testCapture($websiteId, $transactionId, $withTransaction)
     {
+        $transactionMock = $withTransaction ? $this->createTransactionMock() : null;
         $this->initService($this->transactionPlatformService, $websiteId);
 
         $this->transactionPlatformService->expects($this->once())
@@ -249,18 +255,18 @@ class TransactionTest extends AbstractService
     /**
      * @return array
      */
-    public function captureDataProvider()
+    public static function captureDataProvider()
     {
         return [
             'Without address' => [
                 'websiteId' => 333,
                 'transactionId' => 'token_1',
-                'transactionMock' => null,
+                'withTransaction' => false,
             ],
             'With address' => [
                 'websiteId' => 444,
                 'transactionId' => 'token_2',
-                'transactionMock' => $this->createTransactionMock(),
+                'withTransaction' => true,
             ]
         ];
     }
@@ -268,11 +274,13 @@ class TransactionTest extends AbstractService
     /**
      * @param int $websiteId
      * @param int $transactionId
-     * @param \PHPUnit_Framework_MockObject_MockObject $transactionMock
+     * @param bool $withTransaction
      * @dataProvider creditDataProvider
      */
-    public function testCredit($websiteId, $transactionId, $transactionMock)
+    #[\PHPUnit\Framework\Attributes\DataProvider('creditDataProvider')]
+    public function testCredit($websiteId, $transactionId, $withTransaction)
     {
+        $transactionMock = $withTransaction ? $this->createTransactionMock() : null;
         $this->initService($this->transactionPlatformService, $websiteId);
 
         $this->transactionPlatformService->expects($this->once())
@@ -289,18 +297,18 @@ class TransactionTest extends AbstractService
     /**
      * @return array
      */
-    public function creditDataProvider()
+    public static function creditDataProvider()
     {
         return [
             'Without address' => [
                 'websiteId' => 333,
                 'transactionId' => 'token_1',
-                'transactionMock' => null,
+                'withTransaction' => false,
             ],
             'With address' => [
                 'websiteId' => 444,
                 'transactionId' => 'token_2',
-                'transactionMock' => $this->createTransactionMock(),
+                'withTransaction' => true,
             ]
         ];
     }

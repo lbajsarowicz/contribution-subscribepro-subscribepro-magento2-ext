@@ -44,6 +44,7 @@ class SubscriptionConfigTest extends \PHPUnit\Framework\TestCase
      * @param array $result
      * @dataProvider getConfigDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getConfigDataProvider')]
     public function testGetConfig(
         $blockHtml,
         $isAllowedCancel,
@@ -70,7 +71,7 @@ class SubscriptionConfigTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getConfigDataProvider()
+    public static function getConfigDataProvider()
     {
         return [
             'Block content is empty' => [

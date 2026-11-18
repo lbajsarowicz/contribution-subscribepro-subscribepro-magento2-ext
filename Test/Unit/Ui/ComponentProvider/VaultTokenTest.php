@@ -25,7 +25,7 @@ class VaultTokenTest extends \PHPUnit\Framework\TestCase
     {
         $this->componentFactoryMock = $this->getMockBuilder(TokenUiComponentInterfaceFactory::class)
             ->disableOriginalConstructor()
-            ->setMethods(['create'])
+            ->onlyMethods(['create'])
             ->getMock();
 
         $this->uiVaultToken = new VaultToken($this->componentFactoryMock);
@@ -37,6 +37,7 @@ class VaultTokenTest extends \PHPUnit\Framework\TestCase
      * @param array $componentConfig
      * @dataProvider getComponentForTokenDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getComponentForTokenDataProvider')]
     public function testGetComponentForToken($tokenDetails, $publicHash, $componentConfig)
     {
         $componentMock = $this->createComponentMock();
@@ -56,7 +57,7 @@ class VaultTokenTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getComponentForTokenDataProvider()
+    public static function getComponentForTokenDataProvider()
     {
         return [
             'Without token details' => [

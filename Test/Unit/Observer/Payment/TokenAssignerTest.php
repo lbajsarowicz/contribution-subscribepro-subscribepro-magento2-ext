@@ -2,13 +2,11 @@
 
 namespace Swarming\SubscribePro\Test\Unit\Observer\Payment;
 
-use Magento\Customer\Api\Data\CustomerInterface;
 use Magento\Framework\DataObject;
 use Magento\Framework\Event;
 use Magento\Framework\Event\Observer;
 use Magento\Payment\Model\InfoInterface as PaymentInfoInterface;
 use Magento\Payment\Observer\AbstractDataAssignObserver;
-use Magento\Quote\Api\Data\CartInterface;
 use Magento\Quote\Api\Data\PaymentInterface;
 use Magento\Quote\Model\Quote\Payment as QuotePayment;
 use Magento\Vault\Api\Data\PaymentTokenInterface;
@@ -40,6 +38,7 @@ class TokenAssignerTest extends \PHPUnit\Framework\TestCase
      * @param mixed $additionalData
      * @dataProvider executeIfInvalidAdditionalDataDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('executeIfInvalidAdditionalDataDataProvider')]
     public function testExecuteIfInvalidAdditionalData($additionalData)
     {
         $dataMock = $this->createDataMock();
@@ -65,7 +64,7 @@ class TokenAssignerTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function executeIfInvalidAdditionalDataDataProvider()
+    public static function executeIfInvalidAdditionalDataDataProvider()
     {
         return [
             'Not an array' => [
@@ -96,14 +95,17 @@ class TokenAssignerTest extends \PHPUnit\Framework\TestCase
         $paymentInfoMock->expects($this->never())->method('setAdditionalInformation');
 
         $eventMock = $this->createEventMock();
-        $eventMock->expects($this->at(0))
+        $getDataByKeyCalls = [
+            [AbstractDataAssignObserver::DATA_CODE, $dataMock],
+            [AbstractDataAssignObserver::MODEL_CODE, $paymentInfoMock],
+        ];
+        $eventMock->expects($this->exactly(2))
             ->method('getDataByKey')
-            ->with(AbstractDataAssignObserver::DATA_CODE)
-            ->willReturn($dataMock);
-        $eventMock->expects($this->at(1))
-            ->method('getDataByKey')
-            ->with(AbstractDataAssignObserver::MODEL_CODE)
-            ->willReturn($paymentInfoMock);
+            ->willReturnCallback(function ($arg) use (&$getDataByKeyCalls) {
+                [$expectedArg, $result] = array_shift($getDataByKeyCalls);
+                $this->assertEquals($expectedArg, $arg);
+                return $result;
+            });
 
         $observerMock = $this->createObserverMock();
         $observerMock->expects($this->any())
@@ -125,11 +127,8 @@ class TokenAssignerTest extends \PHPUnit\Framework\TestCase
             ->with(PaymentInterface::KEY_ADDITIONAL_DATA)
             ->willReturn($additionalInfo);
 
-        $customerMock = $this->createCustomerMock();
-        $customerMock->expects($this->once())->method('getId')->willReturn(null);
-
         $quoteMock = $this->createQuoteMock();
-        $quoteMock->expects($this->once())->method('getCustomer')->willReturn($customerMock);
+        $quoteMock->expects($this->once())->method('getCustomerId')->willReturn(null);
 
         $paymentInfoMock = $this->createQuotePaymentMock();
         $paymentInfoMock->expects($this->once())
@@ -138,14 +137,17 @@ class TokenAssignerTest extends \PHPUnit\Framework\TestCase
         $paymentInfoMock->expects($this->never())->method('setAdditionalInformation');
 
         $eventMock = $this->createEventMock();
-        $eventMock->expects($this->at(0))
+        $getDataByKeyCalls = [
+            [AbstractDataAssignObserver::DATA_CODE, $dataMock],
+            [AbstractDataAssignObserver::MODEL_CODE, $paymentInfoMock],
+        ];
+        $eventMock->expects($this->exactly(2))
             ->method('getDataByKey')
-            ->with(AbstractDataAssignObserver::DATA_CODE)
-            ->willReturn($dataMock);
-        $eventMock->expects($this->at(1))
-            ->method('getDataByKey')
-            ->with(AbstractDataAssignObserver::MODEL_CODE)
-            ->willReturn($paymentInfoMock);
+            ->willReturnCallback(function ($arg) use (&$getDataByKeyCalls) {
+                [$expectedArg, $result] = array_shift($getDataByKeyCalls);
+                $this->assertEquals($expectedArg, $arg);
+                return $result;
+            });
 
         $observerMock = $this->createObserverMock();
         $observerMock->expects($this->any())
@@ -169,11 +171,8 @@ class TokenAssignerTest extends \PHPUnit\Framework\TestCase
             ->with(PaymentInterface::KEY_ADDITIONAL_DATA)
             ->willReturn($additionalInfo);
 
-        $customerMock = $this->createCustomerMock();
-        $customerMock->expects($this->once())->method('getId')->willReturn($customerId);
-
         $quoteMock = $this->createQuoteMock();
-        $quoteMock->expects($this->once())->method('getCustomer')->willReturn($customerMock);
+        $quoteMock->expects($this->once())->method('getCustomerId')->willReturn($customerId);
 
         $paymentInfoMock = $this->createQuotePaymentMock();
         $paymentInfoMock->expects($this->once())
@@ -182,14 +181,17 @@ class TokenAssignerTest extends \PHPUnit\Framework\TestCase
         $paymentInfoMock->expects($this->never())->method('setAdditionalInformation');
 
         $eventMock = $this->createEventMock();
-        $eventMock->expects($this->at(0))
+        $getDataByKeyCalls = [
+            [AbstractDataAssignObserver::DATA_CODE, $dataMock],
+            [AbstractDataAssignObserver::MODEL_CODE, $paymentInfoMock],
+        ];
+        $eventMock->expects($this->exactly(2))
             ->method('getDataByKey')
-            ->with(AbstractDataAssignObserver::DATA_CODE)
-            ->willReturn($dataMock);
-        $eventMock->expects($this->at(1))
-            ->method('getDataByKey')
-            ->with(AbstractDataAssignObserver::MODEL_CODE)
-            ->willReturn($paymentInfoMock);
+            ->willReturnCallback(function ($arg) use (&$getDataByKeyCalls) {
+                [$expectedArg, $result] = array_shift($getDataByKeyCalls);
+                $this->assertEquals($expectedArg, $arg);
+                return $result;
+            });
 
         $observerMock = $this->createObserverMock();
         $observerMock->expects($this->any())
@@ -230,34 +232,38 @@ class TokenAssignerTest extends \PHPUnit\Framework\TestCase
             ->with(PaymentInterface::KEY_ADDITIONAL_DATA)
             ->willReturn($additionalInfo);
 
-        $customerMock = $this->createCustomerMock();
-        $customerMock->expects($this->once())->method('getId')->willReturn($customerId);
-
         $quoteMock = $this->createQuoteMock();
-        $quoteMock->expects($this->once())->method('getCustomer')->willReturn($customerMock);
+        $quoteMock->expects($this->once())->method('getCustomerId')->willReturn($customerId);
 
         $paymentInfoMock = $this->createQuotePaymentMock();
         $paymentInfoMock->expects($this->once())
             ->method('getQuote')
             ->willReturn($quoteMock);
+        $additionalInformationCalls = [
+            [PaymentTokenInterface::CUSTOMER_ID, $customerId],
+            [PaymentTokenInterface::PUBLIC_HASH, $tokenHash],
+            [TransactionInterface::UNIQUE_ID, $uniqueId],
+            [TransactionInterface::SUBSCRIBE_PRO_ORDER_TOKEN, $subscribeProToken],
+        ];
         $paymentInfoMock->expects($this->exactly(4))
             ->method('setAdditionalInformation')
-            ->withConsecutive(
-                [PaymentTokenInterface::CUSTOMER_ID, $customerId],
-                [PaymentTokenInterface::PUBLIC_HASH, $tokenHash],
-                [TransactionInterface::UNIQUE_ID, $uniqueId],
-                [TransactionInterface::SUBSCRIBE_PRO_ORDER_TOKEN, $subscribeProToken]
-            );
+            ->willReturnCallback(function ($key, $value) use (&$additionalInformationCalls, $paymentInfoMock) {
+                $this->assertEquals(array_shift($additionalInformationCalls), [$key, $value]);
+                return $paymentInfoMock;
+            });
 
         $eventMock = $this->createEventMock();
-        $eventMock->expects($this->at(0))
+        $getDataByKeyCalls = [
+            [AbstractDataAssignObserver::DATA_CODE, $dataMock],
+            [AbstractDataAssignObserver::MODEL_CODE, $paymentInfoMock],
+        ];
+        $eventMock->expects($this->exactly(2))
             ->method('getDataByKey')
-            ->with(AbstractDataAssignObserver::DATA_CODE)
-            ->willReturn($dataMock);
-        $eventMock->expects($this->at(1))
-            ->method('getDataByKey')
-            ->with(AbstractDataAssignObserver::MODEL_CODE)
-            ->willReturn($paymentInfoMock);
+            ->willReturnCallback(function ($arg) use (&$getDataByKeyCalls) {
+                [$expectedArg, $result] = array_shift($getDataByKeyCalls);
+                $this->assertEquals($expectedArg, $arg);
+                return $result;
+            });
 
         $observerMock = $this->createObserverMock();
         $observerMock->expects($this->any())
@@ -309,14 +315,7 @@ class TokenAssignerTest extends \PHPUnit\Framework\TestCase
      */
     private function createQuoteMock()
     {
-        return $this->getMockBuilder(CartInterface::class)->getMock();
+        return $this->getMockBuilder(CustomerCartInterface::class)->getMock();
     }
 
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Customer\Api\Data\CustomerInterface
-     */
-    private function createCustomerMock()
-    {
-        return $this->getMockBuilder(CustomerInterface::class)->getMock();
-    }
 }

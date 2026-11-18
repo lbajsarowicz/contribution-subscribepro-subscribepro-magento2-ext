@@ -46,6 +46,7 @@ class TokenRepositoryTest extends \PHPUnit\Framework\TestCase
      * @param bool $result
      * @dataProvider aroundDeleteIfPaymentMethodNotSubscribeProDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('aroundDeleteIfPaymentMethodNotSubscribeProDataProvider')]
     public function testAroundDeleteIfPaymentMethodNotSubscribePro($methodCode, $paymentProfileId, $result)
     {
         $subjectMock = $this->createPaymentTokenRepositoryMock();
@@ -66,7 +67,7 @@ class TokenRepositoryTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function aroundDeleteIfPaymentMethodNotSubscribeProDataProvider()
+    public static function aroundDeleteIfPaymentMethodNotSubscribeProDataProvider()
     {
         return [
             'Method code is not subscribe pro' => [
@@ -92,6 +93,7 @@ class TokenRepositoryTest extends \PHPUnit\Framework\TestCase
      * @param bool $result
      * @dataProvider aroundDeleteIfFailToRedactProfileDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('aroundDeleteIfFailToRedactProfileDataProvider')]
     public function testAroundDeleteIfFailToRedactProfile($paymentProfileId, $result)
     {
         $exception = $this->getMockBuilder(HttpException::class)->disableOriginalConstructor()->getMock();
@@ -130,7 +132,7 @@ class TokenRepositoryTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function aroundDeleteIfFailToRedactProfileDataProvider()
+    public static function aroundDeleteIfFailToRedactProfileDataProvider()
     {
         return [
             'Result true' => [
@@ -149,6 +151,7 @@ class TokenRepositoryTest extends \PHPUnit\Framework\TestCase
      * @param bool $result
      * @dataProvider aroundDeleteIfAlreadyRedactedDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('aroundDeleteIfAlreadyRedactedDataProvider')]
     public function testAroundDeleteIfAlreadyRedacted($paymentProfileId, $result)
     {
         $subjectMock = $this->createPaymentTokenRepositoryMock();
@@ -181,7 +184,7 @@ class TokenRepositoryTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function aroundDeleteIfAlreadyRedactedDataProvider()
+    public static function aroundDeleteIfAlreadyRedactedDataProvider()
     {
         return [
             'Result true' => [

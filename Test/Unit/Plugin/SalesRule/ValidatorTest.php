@@ -4,8 +4,8 @@ namespace Swarming\SubscribePro\Test\Unit\Plugin\SalesRule;
 
 use Magento\Catalog\Model\Product;
 use Magento\Quote\Model\Quote;
-use Magento\Quote\Model\Quote\Address as QuoteAddress;
-use Magento\Quote\Model\Quote\Item\AbstractItem as QuoteItem;
+use Magento\Quote\Model\Quote\Item as QuoteItem;
+use Magento\SalesRule\Model\Rule;
 use Magento\SalesRule\Model\Validator as SalesRuleValidator;
 use Magento\Store\Api\Data\StoreInterface;
 use Swarming\SubscribePro\Helper\QuoteItem as QuoteItemHelper;
@@ -101,11 +101,11 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
             ->willReturn($discountDescriptions);
 
         $quoteMock = $this->createQuoteMock();
-        $quoteMock->expects($this->once())->method('getAppliedRuleIds')->willReturn($quoteAppliedRuleIds);
+        $quoteMock->setAppliedRuleIds($quoteAppliedRuleIds);
         $quoteMock->expects($this->any())->method('getStore')->willReturn($storeMock);
 
         $quoteItemMock = $this->createQuoteItemMock();
-        $quoteItemMock->expects($this->once())->method('getAppliedRuleIds')->willReturn($quoteItemAppliedRuleIds);
+        $quoteItemMock->setAppliedRuleIds($quoteItemAppliedRuleIds);
         $quoteItemMock->expects($this->any())->method('getQuote')->willReturn($quoteMock);
         $quoteItemMock->expects($this->any())->method('getAddress')->willReturn($quoteAddressMock);
 
@@ -118,7 +118,12 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
         $this->itemSubscriptionDiscountMock->expects($this->never())->method('processSubscriptionDiscount');
         $this->catalogRuleInspectorMock->expects($this->never())->method('isApplied');
 
-        $this->assertSame($subjectMock, $this->validatorPlugin->aroundProcess($subjectMock, $proceed, $quoteItemMock));
+        $this->assertSame($subjectMock, $this->validatorPlugin->aroundProcess(
+            $subjectMock,
+            $proceed,
+            $quoteItemMock,
+            $this->createSubscriptionDiscountRuleMock()
+        ));
     }
 
     public function testAroundProcessIfQuoteWithoutSubscription()
@@ -142,11 +147,11 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
             ->willReturn($discountDescriptions);
 
         $quoteMock = $this->createQuoteMock();
-        $quoteMock->expects($this->once())->method('getAppliedRuleIds')->willReturn($quoteAppliedRuleIds);
+        $quoteMock->setAppliedRuleIds($quoteAppliedRuleIds);
         $quoteMock->expects($this->any())->method('getStore')->willReturn($storeMock);
 
         $quoteItemMock = $this->createQuoteItemMock();
-        $quoteItemMock->expects($this->once())->method('getAppliedRuleIds')->willReturn($quoteItemAppliedRuleIds);
+        $quoteItemMock->setAppliedRuleIds($quoteItemAppliedRuleIds);
         $quoteItemMock->expects($this->any())->method('getQuote')->willReturn($quoteMock);
         $quoteItemMock->expects($this->any())->method('getAddress')->willReturn($quoteAddressMock);
 
@@ -165,7 +170,12 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
         $this->itemSubscriptionDiscountMock->expects($this->never())->method('processSubscriptionDiscount');
         $this->catalogRuleInspectorMock->expects($this->never())->method('isApplied');
 
-        $this->assertSame($subjectMock, $this->validatorPlugin->aroundProcess($subjectMock, $proceed, $quoteItemMock));
+        $this->assertSame($subjectMock, $this->validatorPlugin->aroundProcess(
+            $subjectMock,
+            $proceed,
+            $quoteItemMock,
+            $this->createSubscriptionDiscountRuleMock()
+        ));
     }
 
     public function testAroundProcessIfCannotApplySubscriptionDiscount()
@@ -193,11 +203,11 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
             ->willReturn($discountDescriptions);
 
         $quoteMock = $this->createQuoteMock();
-        $quoteMock->expects($this->once())->method('getAppliedRuleIds')->willReturn($quoteAppliedRuleIds);
+        $quoteMock->setAppliedRuleIds($quoteAppliedRuleIds);
         $quoteMock->expects($this->any())->method('getStore')->willReturn($storeMock);
 
         $quoteItemMock = $this->createQuoteItemMock();
-        $quoteItemMock->expects($this->once())->method('getAppliedRuleIds')->willReturn($quoteItemAppliedRuleIds);
+        $quoteItemMock->setAppliedRuleIds($quoteItemAppliedRuleIds);
         $quoteItemMock->expects($this->any())->method('getQuote')->willReturn($quoteMock);
         $quoteItemMock->expects($this->any())->method('getAddress')->willReturn($quoteAddressMock);
         $quoteItemMock->expects($this->once())->method('getProduct')->willReturn($productMock);
@@ -226,7 +236,12 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
 
         $this->itemSubscriptionDiscountMock->expects($this->never())->method('processSubscriptionDiscount');
 
-        $this->assertSame($subjectMock, $this->validatorPlugin->aroundProcess($subjectMock, $proceed, $quoteItemMock));
+        $this->assertSame($subjectMock, $this->validatorPlugin->aroundProcess(
+            $subjectMock,
+            $proceed,
+            $quoteItemMock,
+            $this->createSubscriptionDiscountRuleMock()
+        ));
     }
 
     /**
@@ -241,6 +256,7 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
      * @param bool $isApplyDiscountToCatalogPrice
      * @dataProvider aroundProcessDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('aroundProcessDataProvider')]
     public function testAroundProcess(
         $quoteItemAppliedRuleIds,
         $quoteAppliedRuleIds,
@@ -268,11 +284,11 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
             ->willReturn($discountDescriptions);
 
         $quoteMock = $this->createQuoteMock();
-        $quoteMock->expects($this->once())->method('getAppliedRuleIds')->willReturn($quoteAppliedRuleIds);
+        $quoteMock->setAppliedRuleIds($quoteAppliedRuleIds);
         $quoteMock->expects($this->any())->method('getStore')->willReturn($storeMock);
 
         $quoteItemMock = $this->createQuoteItemMock();
-        $quoteItemMock->expects($this->once())->method('getAppliedRuleIds')->willReturn($quoteItemAppliedRuleIds);
+        $quoteItemMock->setAppliedRuleIds($quoteItemAppliedRuleIds);
         $quoteItemMock->expects($this->any())->method('getQuote')->willReturn($quoteMock);
         $quoteItemMock->expects($this->any())->method('getAddress')->willReturn($quoteAddressMock);
         $quoteItemMock->expects($this->once())->method('getProduct')->willReturn($productMock);
@@ -301,16 +317,21 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
 
         $this->itemSubscriptionDiscountMock->expects($this->once())
             ->method('processSubscriptionDiscount')
-            ->with($quoteItemMock, $itemBasePrice, $this->isType('callable'))
+            ->with($quoteItemMock, $itemBasePrice, $this->callback('is_callable'))
             ->willReturn($isApplyDiscountToCatalogPrice);
 
-        $this->assertSame($subjectMock, $this->validatorPlugin->aroundProcess($subjectMock, $proceed, $quoteItemMock));
+        $this->assertSame($subjectMock, $this->validatorPlugin->aroundProcess(
+            $subjectMock,
+            $proceed,
+            $quoteItemMock,
+            $this->createSubscriptionDiscountRuleMock()
+        ));
     }
 
     /**
      * @return array
      */
-    public function aroundProcessDataProvider()
+    public static function aroundProcessDataProvider()
     {
         return [
             'Catalog rule not applied' => [
@@ -339,6 +360,20 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
+     * @return \PHPUnit\Framework\MockObject\MockObject|\Magento\SalesRule\Model\Rule
+     */
+    private function createSubscriptionDiscountRuleMock()
+    {
+        $ruleMock = $this->getMockBuilder(Rule::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods(['__wakeup'])
+            ->getMock();
+        $ruleMock->setName('Subscribe Pro Discount');
+
+        return $ruleMock;
+    }
+
+    /**
      * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Store\Api\Data\StoreInterface
      */
     private function createStoreMock()
@@ -351,9 +386,9 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
      */
     private function createQuoteAddressMock()
     {
-        return $this->getMockBuilder(QuoteAddress::class)
+        return $this->getMockBuilder(RuleAddress::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getDiscountDescriptionArray', 'getAppliedRuleIds', '__wakeup'])
+            ->onlyMethods(['getDiscountDescriptionArray', 'getAppliedRuleIds', '__wakeup'])
             ->getMock();
     }
 
@@ -364,19 +399,19 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
     {
         return $this->getMockBuilder(Quote::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getAppliedRuleIds', 'getStore', '__wakeup'])
+            ->onlyMethods(['getStore', '__wakeup'])
             ->getMock();
     }
 
     /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Quote\Model\Quote\Item\AbstractItem
+     * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Quote\Model\Quote\Item
      */
     private function createQuoteItemMock()
     {
         return $this->getMockBuilder(QuoteItem::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getAddress', 'getQuote', 'getAppliedRuleIds', 'getProduct', '__wakeup'])
-            ->getMockForAbstractClass();
+            ->onlyMethods(['getAddress', 'getQuote', 'getProduct', '__wakeup'])
+            ->getMock();
     }
 
     /**

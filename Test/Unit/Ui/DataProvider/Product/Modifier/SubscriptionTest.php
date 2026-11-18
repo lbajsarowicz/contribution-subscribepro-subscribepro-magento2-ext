@@ -51,6 +51,7 @@ class SubscriptionTest extends \PHPUnit\Framework\TestCase
      * @param array $result
      * @dataProvider modifyDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('modifyDataProvider')]
     public function testModifyData($data, $productId, $result)
     {
         $productMock = $this->getMockBuilder(ProductInterface::class)->getMock();
@@ -66,7 +67,7 @@ class SubscriptionTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function modifyDataProvider()
+    public static function modifyDataProvider()
     {
         return [
             'Attribute subscription_enabled not set in data' => [

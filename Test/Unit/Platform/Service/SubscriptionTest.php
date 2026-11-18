@@ -33,6 +33,7 @@ class SubscriptionTest extends AbstractService
      * @param int $expectedWebsiteId
      * @dataProvider createSubscriptionDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('createSubscriptionDataProvider')]
     public function testCreateSubscription($websiteId, $expectedWebsiteId)
     {
         $subscriptionMock = $this->createSubscriptionMock();
@@ -52,7 +53,7 @@ class SubscriptionTest extends AbstractService
     /**
      * @return array
      */
-    public function createSubscriptionDataProvider()
+    public static function createSubscriptionDataProvider()
     {
         return [
             'With website Id' => [
