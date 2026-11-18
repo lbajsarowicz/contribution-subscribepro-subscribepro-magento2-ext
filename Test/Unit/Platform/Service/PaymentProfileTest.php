@@ -18,6 +18,8 @@ class PaymentProfileTest extends AbstractService
      */
     protected $paymentProfilePlatformService;
 
+    private $metaServiceMock;
+
     protected function setUp(): void
     {
         $this->platformMock = $this->createPlatformMock();
@@ -25,7 +27,12 @@ class PaymentProfileTest extends AbstractService
             ->disableOriginalConstructor()
             ->getMock();
 
-        $this->paymentProfileService = new PaymentProfile($this->platformMock, $this->name);
+        $this->metaServiceMock = $this->createStub(\Swarming\SubscribePro\Model\MetaService::class);
+        $this->paymentProfileService = new PaymentProfile(
+            $this->platformMock,
+            $this->name,
+            $this->metaServiceMock
+        );
     }
 
     /**
@@ -33,6 +40,7 @@ class PaymentProfileTest extends AbstractService
      * @param int $expectedWebsiteId
      * @dataProvider createProfileDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('createProfileDataProvider')]
     public function testCreateProfile($websiteId, $expectedWebsiteId)
     {
         $profileMock = $this->createProfileMock();
@@ -52,7 +60,7 @@ class PaymentProfileTest extends AbstractService
     /**
      * @return array
      */
-    public function createProfileDataProvider()
+    public static function createProfileDataProvider()
     {
         return [
             'With website Id' => [
@@ -144,13 +152,13 @@ class PaymentProfileTest extends AbstractService
         $this->initService($this->paymentProfilePlatformService, $websiteId);
 
         $this->paymentProfilePlatformService->expects($this->once())
-            ->method('saveProfile')
+            ->method('saveThirdPartyTokenProfile')
             ->with($profileMock)
             ->willReturn($profileMock);
 
         $this->assertSame(
             $profileMock,
-            $this->paymentProfileService->saveProfile($profileMock, $websiteId)
+            $this->paymentProfileService->saveThirdPartyToken($profileMock, $websiteId)
         );
     }
 
@@ -161,9 +169,10 @@ class PaymentProfileTest extends AbstractService
         $profileMock = $this->createProfileMock();
         $this->initService($this->paymentProfilePlatformService, $websiteId);
 
+        $this->metaServiceMock->method('getData')->willReturn(['source' => 'store']);
         $this->paymentProfilePlatformService->expects($this->once())
             ->method('saveToken')
-            ->with($token, $profileMock)
+            ->with($token, $profileMock, ['source' => 'store'])
             ->willReturn($profileMock);
 
         $this->assertSame(
@@ -213,6 +222,6 @@ class PaymentProfileTest extends AbstractService
      */
     private function createProfileMock()
     {
-        return $this->getMockBuilder(PaymentProfileInterface::class)->getMock();
+        return $this->createStub(PaymentProfileInterface::class);
     }
 }

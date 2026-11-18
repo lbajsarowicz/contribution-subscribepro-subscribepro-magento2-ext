@@ -452,11 +452,7 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
      */
     private function createCallbackMock()
     {
-        return $this->getMockBuilder(get_class(new class {
-            public function __invoke($item)
-            {
-            }
-        }))
+        return $this->getMockBuilder(DiscountRollback::class)
             ->getMock();
     }
 

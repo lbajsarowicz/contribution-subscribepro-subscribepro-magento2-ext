@@ -1,8 +1,7 @@
 <?php
 
-namespace Swarming\SubscribePro\Test\Unit\Plugin\Product;
+namespace Swarming\SubscribePro\Test\Unit\Model\Subscription;
 
-use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Api\ProductRepositoryInterface;
 use Magento\Catalog\Model\Product\Type\AbstractType as ProductTypeInstance;
 use Magento\Framework\DataObject;
@@ -52,7 +51,7 @@ class OptionItemManagerTest extends \PHPUnit\Framework\TestCase
     {
         $this->subscriptionItemFactoryMock = $this->getMockBuilder(OptionItemFactory::class)
             ->disableOriginalConstructor()
-            ->setMethods(['create'])
+            ->onlyMethods(['create'])
             ->getMock();
         $this->productRepositoryMock = $this->getMockBuilder(ProductRepositoryInterface::class)->getMock();
         $this->productOptionHelperMock = $this->getMockBuilder(ProductOptionHelper::class)
@@ -108,6 +107,7 @@ class OptionItemManagerTest extends \PHPUnit\Framework\TestCase
      * @param array $buyRequestParams
      * @dataProvider getSubscriptionOptionItemIfBuyRequestNotObjectDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getSubscriptionOptionItemIfBuyRequestNotObjectDataProvider')]
     public function testGetSubscriptionOptionItemIfBuyRequestNotObject(
         $sku,
         $productTypeId,
@@ -174,7 +174,7 @@ class OptionItemManagerTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getSubscriptionOptionItemIfBuyRequestNotObjectDataProvider()
+    public static function getSubscriptionOptionItemIfBuyRequestNotObjectDataProvider()
     {
         return [
             'Buy request is int' => [
@@ -258,9 +258,9 @@ class OptionItemManagerTest extends \PHPUnit\Framework\TestCase
      */
     private function createProductMock()
     {
-        return $this->getMockBuilder(ProductInterface::class)
-            ->setMethods(['unsetData', 'getTypeId', 'getTypeInstance', 'getCustomOptions'])
-            ->getMockForAbstractClass();
+        return $this->getMockBuilder(\Magento\Catalog\Model\Product::class)
+            ->disableOriginalConstructor()
+            ->getMock();
     }
 
     /**
@@ -270,8 +270,8 @@ class OptionItemManagerTest extends \PHPUnit\Framework\TestCase
     {
         return $this->getMockBuilder(ProductTypeInstance::class)
             ->disableOriginalConstructor()
-            ->setMethods(['processConfiguration'])
-            ->getMockForAbstractClass();
+            ->onlyMethods(['processConfiguration'])
+            ->getMock();
     }
 
     /**

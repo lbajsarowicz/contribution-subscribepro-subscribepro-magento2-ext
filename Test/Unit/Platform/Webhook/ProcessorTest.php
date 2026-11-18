@@ -19,17 +19,22 @@ class ProcessorTest extends \PHPUnit\Framework\TestCase
      */
     protected $webhookHandlerPoolMock;
 
+    private $loggerMock;
+
     protected function setUp(): void
     {
         $this->webhookHandlerPoolMock = $this->getMockBuilder(HandlerPool::class)
             ->disableOriginalConstructor()->getMock();
 
-        $this->webhookProcessor = new Processor($this->webhookHandlerPoolMock);
+        $this->loggerMock = $this->getMockBuilder(\Psr\Log\LoggerInterface::class)->getMock();
+        $this->webhookProcessor = new Processor($this->webhookHandlerPoolMock, $this->loggerMock);
     }
 
     public function testProcessEventIfFailToGetHandler()
     {
         $exception = new \DomainException('error');
+        $this->loggerMock->expects($this->once())->method('debug')->with('error');
+        $this->loggerMock->expects($this->once())->method('warning')->with('Error while process webhook!');
         $eventType = 'some_type';
 
         $webhookEventMock = $this->createWebhookEventMock();
@@ -45,6 +50,8 @@ class ProcessorTest extends \PHPUnit\Framework\TestCase
 
     public function testProcessEvent()
     {
+        $this->loggerMock->expects($this->never())->method('debug');
+        $this->loggerMock->expects($this->never())->method('warning');
         $eventType = 'some_type';
 
         $webhookEventMock = $this->createWebhookEventMock();
