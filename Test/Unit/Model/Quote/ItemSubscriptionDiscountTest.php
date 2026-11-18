@@ -5,9 +5,6 @@ namespace Swarming\SubscribePro\Test\Unit\Model\Quote;
 use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Model\Product;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
-use Magento\Quote\Api\Data\CartInterface;
-use Magento\Quote\Model\Quote\Address as QuoteAddress;
-use Magento\Quote\Model\Quote\Item as QuoteItem;
 use Swarming\SubscribePro\Api\Data\ProductInterface as PlatformProductInterface;
 use Swarming\SubscribePro\Helper\QuoteItem as QuoteItemHelper;
 use Swarming\SubscribePro\Model\Config\Source\CartRuleCombine;
@@ -56,7 +53,8 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
             $this->subscriptionDiscountConfigMock,
             $this->platformProductManagerMock,
             $this->quoteItemHelperMock,
-            $this->priceCurrencyMock
+            $this->priceCurrencyMock,
+            new \Swarming\SubscribePro\Helper\SalesRuleValidator()
         );
     }
 
@@ -72,6 +70,7 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
      * @param string $cartRuleCombineType
      * @dataProvider processSubscriptionDiscountIfNotAppliedSubscriptionDiscountDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('processSubscriptionDiscountIfNotAppliedSubscriptionDiscountDataProvider')]
     public function testProcessSubscriptionDiscountIfNotAppliedSubscriptionDiscount(
         $storeId,
         $productSku,
@@ -87,6 +86,9 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
 
         $quoteMock = $this->createQuoteMock();
         $quoteMock->expects($this->once())->method('getStoreId')->willReturn($storeId);
+        $storeMock = $this->createMock(\Magento\Store\Model\Store::class);
+        $storeMock->method('getWebsiteId')->willReturn(1);
+        $quoteMock->expects($this->once())->method('getStore')->willReturn($storeMock);
 
         $platformProductMock = $this->createPlatformProductMock();
         $platformProductMock->expects($this->once())
@@ -98,7 +100,7 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
         $productMock->expects($this->once())->method('getData')->with(ProductInterface::SKU)->willReturn($productSku);
 
         $quoteItemMock = $this->createQuoteItemMock();
-        $quoteItemMock->expects($this->once())->method('getQuote')->willReturn($quoteMock);
+        $quoteItemMock->expects($this->exactly(2))->method('getQuote')->willReturn($quoteMock);
         $quoteItemMock->expects($this->once())->method('getBaseDiscountAmount')->willReturn($baseCartDiscount);
         $quoteItemMock->expects($this->once())->method('getProduct')->willReturn($productMock);
         $quoteItemMock->expects($this->once())->method('getQty')->willReturn($qty);
@@ -107,7 +109,7 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
 
         $this->platformProductManagerMock->expects($this->once())
             ->method('getProduct')
-            ->with($productSku)
+            ->with($productSku, 1)
             ->willReturn($platformProductMock);
 
         $this->subscriptionDiscountConfigMock->expects($this->exactly(2))
@@ -117,7 +119,8 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
 
         $this->priceCurrencyMock->expects($this->once())
             ->method('convertAndRound')
-            ->with($baseSubscriptionDiscount, $storeId);
+            ->with($baseSubscriptionDiscount, $storeId)
+            ->willReturn($baseSubscriptionDiscount);
 
         $this->itemSubscriptionDiscount->processSubscriptionDiscount($quoteItemMock, $itemBasePrice, $rollbackCallback);
     }
@@ -125,7 +128,7 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function processSubscriptionDiscountIfNotAppliedSubscriptionDiscountDataProvider()
+    public static function processSubscriptionDiscountIfNotAppliedSubscriptionDiscountDataProvider()
     {
         return [
             'Card combine type apply greatest:base subscription discount < base cart discount' => [
@@ -176,9 +179,9 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
      * @param string $cartRuleCombineType
      * @param float $subscriptionDiscount
      * @param array $discountDescriptions
-     * @param array $updatedDiscountDescriptions
      * @dataProvider processSubscriptionDiscountIfOnlySubscriptionDiscountDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('processSubscriptionDiscountIfOnlySubscriptionDiscountDataProvider')]
     public function testProcessSubscriptionDiscountIfOnlySubscriptionDiscount(
         $storeId,
         $productSku,
@@ -190,14 +193,16 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
         $qty,
         $cartRuleCombineType,
         $subscriptionDiscount,
-        $discountDescriptions,
-        $updatedDiscountDescriptions
+        $discountDescriptions
     ) {
         $rollbackCallback = $this->createCallbackMock();
         $rollbackCallback->expects($this->once())->method('__invoke');
 
         $quoteMock = $this->createQuoteMock();
         $quoteMock->expects($this->once())->method('getStoreId')->willReturn($storeId);
+        $storeMock = $this->createMock(\Magento\Store\Model\Store::class);
+        $storeMock->method('getWebsiteId')->willReturn(1);
+        $quoteMock->expects($this->once())->method('getStore')->willReturn($storeMock);
 
         $platformProductMock = $this->createPlatformProductMock();
         $platformProductMock->expects($this->once())
@@ -210,20 +215,20 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
 
         $addressMock = $this->createAddressMock();
         $addressMock->expects($this->once())->method('getDiscountDescriptionArray')->willReturn($discountDescriptions);
-        $addressMock->expects($this->once())->method('setDiscountDescriptionArray')->with($updatedDiscountDescriptions);
+        $addressMock->expects($this->once())->method('setDiscountDescriptionArray')->with($discountDescriptions);
 
         $quoteItemMock = $this->createQuoteItemMock();
-        $quoteItemMock->expects($this->once())->method('getQuote')->willReturn($quoteMock);
+        $quoteItemMock->expects($this->exactly(2))->method('getQuote')->willReturn($quoteMock);
         $quoteItemMock->expects($this->once())->method('getBaseDiscountAmount')->willReturn($baseCartDiscount);
         $quoteItemMock->expects($this->once())->method('getProduct')->willReturn($productMock);
         $quoteItemMock->expects($this->once())->method('getQty')->willReturn($qty);
-        $quoteItemMock->expects($this->any())->method('getAddress')->willReturn($addressMock);
+        $quoteItemMock->method('getAddress')->willReturn($addressMock);
         $quoteItemMock->expects($this->once())->method('setDiscountAmount')->with($subscriptionDiscount);
-        $quoteItemMock->expects($this->once())->method('setBaseDiscountAmount')->with($baseSubscriptionDiscount);
+        $quoteItemMock->expects($this->once())->method('setBaseDiscountAmount')->with($subscriptionDiscount);
 
         $this->platformProductManagerMock->expects($this->once())
             ->method('getProduct')
-            ->with($productSku)
+            ->with($productSku, 1)
             ->willReturn($platformProductMock);
 
         $this->subscriptionDiscountConfigMock->expects($this->once())
@@ -242,7 +247,7 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function processSubscriptionDiscountIfOnlySubscriptionDiscountDataProvider()
+    public static function processSubscriptionDiscountIfOnlySubscriptionDiscountDataProvider()
     {
         return [
             'Card combine type apply greatest:base subscription discount > base cart discount' => [
@@ -257,10 +262,6 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
                 'cartRuleCombineType' => CartRuleCombine::TYPE_APPLY_GREATEST,
                 'subscriptionDiscount' => 10,
                 'discountDescriptions' => ['key' => 'value'],
-                'updatedDiscountDescriptions' => [
-                    'key' => 'value',
-                    ItemSubscriptionDiscount::KEY_DISCOUNT_DESCRIPTION => __('Subscription')
-                ],
             ],
             'Card combine type apply greatest:base subscription discount = base cart discount' => [
                 'storeId' => 5654,
@@ -274,9 +275,6 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
                 'cartRuleCombineType' => CartRuleCombine::TYPE_APPLY_GREATEST,
                 'subscriptionDiscount' => 20,
                 'discountDescriptions' => [],
-                'updatedDiscountDescriptions' => [
-                    ItemSubscriptionDiscount::KEY_DISCOUNT_DESCRIPTION => __('Subscription')
-                ],
             ],
             'Card combine type apply least:base subscription discount = base cart discount' => [
                 'storeId' => 6485,
@@ -288,12 +286,8 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
                 'baseSubscriptionDiscount' => 2,
                 'qty' => 1,
                 'cartRuleCombineType' => CartRuleCombine::TYPE_APPLY_LEAST,
-                'subscriptionDiscount' => 3,
+                'subscriptionDiscount' => 2,
                 'discountDescriptions' => ['some' => 'description'],
-                'updatedDiscountDescriptions' => [
-                    'some' => 'description',
-                    ItemSubscriptionDiscount::KEY_DISCOUNT_DESCRIPTION => __('Subscription')
-                ],
             ],
             'Card combine type apply least:base subscription discount < base cart discount' => [
                 'storeId' => 123343,
@@ -307,10 +301,6 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
                 'cartRuleCombineType' => CartRuleCombine::TYPE_APPLY_LEAST,
                 'subscriptionDiscount' => 10,
                 'discountDescriptions' => ['another' => 'description'],
-                'updatedDiscountDescriptions' => [
-                    'another' => 'description',
-                    ItemSubscriptionDiscount::KEY_DISCOUNT_DESCRIPTION => __('Subscription')
-                ],
             ],
             'Card combine type apply cart discount:cart rules applied' => [
                 'storeId' => 3232,
@@ -324,10 +314,6 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
                 'cartRuleCombineType' => CartRuleCombine::TYPE_APPLY_CART_DISCOUNT,
                 'subscriptionDiscount' => 20,
                 'discountDescriptions' => ['key' => 'value'],
-                'updatedDiscountDescriptions' => [
-                    'key' => 'value',
-                    ItemSubscriptionDiscount::KEY_DISCOUNT_DESCRIPTION => __('Subscription')
-                ],
             ],
             'Card combine type apply subscription' => [
                 'storeId' => 43252,
@@ -341,10 +327,6 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
                 'cartRuleCombineType' => CartRuleCombine::TYPE_APPLY_SUBSCRIPTION,
                 'subscriptionDiscount' => 30,
                 'discountDescriptions' => ['address' => 'description'],
-                'updatedDiscountDescriptions' => [
-                    'address' => 'description',
-                    ItemSubscriptionDiscount::KEY_DISCOUNT_DESCRIPTION => __('Subscription')
-                ],
             ],
         ];
     }
@@ -361,20 +343,19 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
         $qty = 2;
         $subscriptionDiscount = 45;
         $discountDescriptions = ['discount' => 'description'];
-        $updatedDiscountDescriptions = [
-            'discount' => 'description',
-            ItemSubscriptionDiscount::KEY_DISCOUNT_DESCRIPTION => __('Subscription')
-        ];
         $oldDiscountAmount = 5;
         $oldBaseDiscountAmount = 2;
         $newDiscountAmount = 50;
-        $newBaseDiscountAmount = 42;
+        $newBaseDiscountAmount = 47;
 
         $rollbackCallback = $this->createCallbackMock();
         $rollbackCallback->expects($this->never())->method('__invoke');
 
         $quoteMock = $this->createQuoteMock();
         $quoteMock->expects($this->once())->method('getStoreId')->willReturn($storeId);
+        $storeMock = $this->createMock(\Magento\Store\Model\Store::class);
+        $storeMock->method('getWebsiteId')->willReturn(1);
+        $quoteMock->expects($this->once())->method('getStore')->willReturn($storeMock);
 
         $platformProductMock = $this->createPlatformProductMock();
         $platformProductMock->expects($this->once())
@@ -387,22 +368,22 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
 
         $addressMock = $this->createAddressMock();
         $addressMock->expects($this->once())->method('getDiscountDescriptionArray')->willReturn($discountDescriptions);
-        $addressMock->expects($this->once())->method('setDiscountDescriptionArray')->with($updatedDiscountDescriptions);
+        $addressMock->expects($this->once())->method('setDiscountDescriptionArray')->with($discountDescriptions);
 
         $quoteItemMock = $this->createQuoteItemMock();
-        $quoteItemMock->expects($this->once())->method('getQuote')->willReturn($quoteMock);
-        $quoteItemMock->expects($this->at(1))->method('getBaseDiscountAmount')->willReturn($baseCartDiscount);
+        $quoteItemMock->expects($this->exactly(2))->method('getQuote')->willReturn($quoteMock);
+        $quoteItemMock->expects($this->exactly(2))->method('getBaseDiscountAmount')
+            ->willReturnOnConsecutiveCalls($baseCartDiscount, $oldBaseDiscountAmount);
         $quoteItemMock->expects($this->once())->method('getProduct')->willReturn($productMock);
         $quoteItemMock->expects($this->once())->method('getQty')->willReturn($qty);
-        $quoteItemMock->expects($this->any())->method('getAddress')->willReturn($addressMock);
+        $quoteItemMock->method('getAddress')->willReturn($addressMock);
         $quoteItemMock->expects($this->once())->method('getDiscountAmount')->willReturn($oldDiscountAmount);
-        $quoteItemMock->expects($this->at(6))->method('getBaseDiscountAmount')->willReturn($oldBaseDiscountAmount);
         $quoteItemMock->expects($this->once())->method('setDiscountAmount')->with($newDiscountAmount);
         $quoteItemMock->expects($this->once())->method('setBaseDiscountAmount')->with($newBaseDiscountAmount);
 
         $this->platformProductManagerMock->expects($this->once())
             ->method('getProduct')
-            ->with($productSku)
+            ->with($productSku, 1)
             ->willReturn($platformProductMock);
 
         $this->subscriptionDiscountConfigMock->expects($this->exactly(2))
@@ -423,9 +404,9 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
      */
     private function createQuoteItemMock()
     {
-        return $this->getMockBuilder(QuoteItem::class)
+        return $this->getMockBuilder(DiscountQuoteItem::class)
             ->disableOriginalConstructor()
-            ->setMethods([
+            ->onlyMethods([
                 'getDiscountAmount',
                 'getBaseDiscountAmount',
                 'getQuote',
@@ -444,7 +425,7 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
      */
     private function createQuoteMock()
     {
-        return $this->getMockBuilder(CartInterface::class)->getMock();
+        return $this->getMockBuilder(\Magento\Quote\Model\Quote::class)->disableOriginalConstructor()->getMock();
     }
 
     /**
@@ -460,9 +441,9 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
      */
     private function createAddressMock()
     {
-        return $this->getMockBuilder(QuoteAddress::class)
+        return $this->getMockBuilder(DiscountQuoteAddress::class)
             ->disableOriginalConstructor()
-            ->setMethods(['setDiscountDescriptionArray', 'getDiscountDescriptionArray', '__wakeup'])
+            ->onlyMethods(['setDiscountDescriptionArray', 'getDiscountDescriptionArray', '__wakeup'])
             ->getMock();
     }
 
@@ -471,8 +452,11 @@ class ItemSubscriptionDiscountTest extends \PHPUnit\Framework\TestCase
      */
     private function createCallbackMock()
     {
-        return $this->getMockBuilder(\stdClass::class)
-            ->setMethods(['__invoke'])
+        return $this->getMockBuilder(get_class(new class {
+            public function __invoke($item)
+            {
+            }
+        }))
             ->getMock();
     }
 

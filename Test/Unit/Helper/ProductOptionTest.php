@@ -39,7 +39,11 @@ class ProductOptionTest extends \PHPUnit\Framework\TestCase
 
         $this->productOptionHelper = new ProductOption(
             $this->reflectionObjectProcessorMock,
-            $this->inputProcessorMock
+            $this->inputProcessorMock,
+            $this->createMock(\Magento\ConfigurableProduct\Model\Quote\Item\CartItemProcessor::class),
+            $this->createMock(\Magento\Bundle\Model\CartItemProcessor::class),
+            $this->createMock(\Magento\Catalog\Model\CustomOptions\CustomOptionProcessor::class),
+            $this->createMock(\Psr\Log\LoggerInterface::class)
         );
     }
 
@@ -87,6 +91,7 @@ class ProductOptionTest extends \PHPUnit\Framework\TestCase
      * @param array $result
      * @dataProvider getProductOptionDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getProductOptionDataProvider')]
     public function testGetProductOption($productOptions, $result)
     {
         $productOptionMock = $this->getMockBuilder(DataObject::class)->disableOriginalConstructor()->getMock();
@@ -105,7 +110,7 @@ class ProductOptionTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getProductOptionDataProvider()
+    public static function getProductOptionDataProvider()
     {
         return [
             'Empty product options' => [

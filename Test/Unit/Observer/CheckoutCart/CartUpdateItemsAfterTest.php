@@ -122,7 +122,11 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $subscriptionInterval = 'monthly';
         $platformProduct2Mock = $this->createPlatformProductMock();
 
-        $subscription1Params = ['params'];
+        $subscription1Params = [
+            SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
+                SubscriptionOptionInterface::OPTION => $subscriptionOption,
+            ]
+        ];
         $subscription2Params = [
             SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
                 SubscriptionOptionInterface::OPTION => $subscriptionOption,
@@ -300,8 +304,8 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionOptionUpdaterMock->expects($this->exactly(2))
             ->method('update')
             ->willReturnMap([
-                [$quoteItem1Mock, $platformProduct1ParentMock, $subscriptionOption, $subscriptionInterval, []],
-                [$quoteItem2Mock, $platformProduct2Mock, $subscriptionOption, $subscriptionInterval, []]
+                [$quoteItem1Mock, $platformProduct1ParentMock, $subscriptionOption, $subscriptionInterval, null, []],
+                [$quoteItem2Mock, $platformProduct2Mock, $subscriptionOption, $subscriptionInterval, null, []]
             ]);
 
         $this->cartUpdateItemsAfter->execute($observerMock);
@@ -318,7 +322,11 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $subscriptionInterval = 'monthly';
         $platformProduct2Mock = $this->createPlatformProductMock();
 
-        $subscription1Params = ['params'];
+        $subscription1Params = [
+            SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
+                SubscriptionOptionInterface::OPTION => $subscriptionOption,
+            ]
+        ];
         $subscription2Params = [
             SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
                 SubscriptionOptionInterface::OPTION => $subscriptionOption,
@@ -541,7 +549,11 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
                 'product1Sku' => 'product-1-sku',
                 'product2Sku' => 'product-2-sku',
                 'exception' => new NoSuchEntityException(__('log message')),
-                'subscription1Params' => ['params'],
+                'subscription1Params' => [
+                    SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
+                        SubscriptionOptionInterface::OPTION => 'subscribe',
+                    ]
+                ],
                 'subscription2Params' => [
                     SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
                         SubscriptionOptionInterface::OPTION => 'subscribe',
@@ -558,7 +570,11 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
                 'product1Sku' => 'product1sku',
                 'product2Sku' => 'product2sku',
                 'exception' => new NoSuchEntityException(__('error message')),
-                'subscription1Params' => ['params'],
+                'subscription1Params' => [
+                    SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
+                        SubscriptionOptionInterface::OPTION => 'subscribe',
+                    ]
+                ],
                 'subscription2Params' => [
                     SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
                         SubscriptionOptionInterface::OPTION => 'onetime_purchase',
@@ -602,11 +618,12 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $item1Warnings,
         $item2Warnings
     ) {
+        $updateFirst = !empty($subscription1Params[SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION]);
         $platformProduct1Mock = $this->createPlatformProductMock();
         $platformProduct2Mock = $this->createPlatformProductMock();
 
         $product1Mock = $this->createProductMock();
-        $product1Mock->expects($this->once())
+        $product1Mock->expects($updateFirst ? $this->once() : $this->never())
             ->method('getData')
             ->with(ProductInterface::SKU)
             ->willReturn($product1Sku);
@@ -619,8 +636,8 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
 
         $quoteItem1Mock = $this->createQuoteItemMock();
         $quoteItem1Mock->expects($this->once())->method('getItemId')->willReturn($itemId1);
-        $quoteItem1Mock->expects($this->once())->method('getProduct')->willReturn($product1Mock);
-        $quoteItem1Mock->expects($this->once())->method('getParentItem')->willReturn(null);
+        $quoteItem1Mock->expects($updateFirst ? $this->once() : $this->never())->method('getProduct')->willReturn($product1Mock);
+        $quoteItem1Mock->expects($updateFirst ? $this->once() : $this->never())->method('getParentItem')->willReturn(null);
 
         $quoteItem2Mock = $this->createQuoteItemMock();
         $quoteItem2Mock->expects($this->once())->method('getItemId')->willReturn($itemId2);
@@ -663,11 +680,11 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
             ->method('isEnabled')
             ->willReturn(true);
 
-        $this->productHelperMock->expects($this->exactly(2))
+        $this->productHelperMock->expects($this->exactly($updateFirst ? 2 : 1))
             ->method('isSubscriptionEnabled')
             ->willReturnMap([[$product1Mock, true], [$product2Mock, true]]);
 
-        $this->platformProductManagerMock->expects($this->exactly(2))
+        $this->platformProductManagerMock->expects($this->exactly($updateFirst ? 2 : 1))
             ->method('getProduct')
             ->willReturnCallback(function (...$arguments) use ($platformProduct1Mock, $platformProduct2Mock, $product1Sku, $product2Sku) {
                 if ($arguments[0] === $product1Sku) {
@@ -678,7 +695,7 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
                 return $platformProduct2Mock;
             });
 
-        $this->subscriptionOptionUpdaterMock->expects($this->exactly(2))
+        $this->subscriptionOptionUpdaterMock->expects($this->exactly($updateFirst ? 2 : 1))
             ->method('update')
             ->willReturnCallback(function (...$arguments) use (
                 $item1Warnings,
@@ -712,6 +729,7 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
                 return $item2Warnings;
             });
 
+        $item1Warnings = $updateFirst ? $item1Warnings : [];
         $warningsMap = array_map(function ($warning) {
             return [$warning];
         }, array_merge($item1Warnings, $item2Warnings));

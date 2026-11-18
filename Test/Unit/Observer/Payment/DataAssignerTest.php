@@ -38,7 +38,7 @@ class DataAssignerTest extends \PHPUnit\Framework\TestCase
             ->willReturn($dataMock);
 
         $observerMock = $this->createObserverMock();
-        $observerMock->expects($this->any())
+        $observerMock
             ->method('getEvent')
             ->willReturn($eventMock);
 
@@ -64,17 +64,15 @@ class DataAssignerTest extends \PHPUnit\Framework\TestCase
             ->with(PaymentDataBuilder::PAYMENT_METHOD_TOKEN, 'payment token');
 
         $eventMock = $this->createEventMock();
-        $eventMock->expects($this->at(0))
+        $eventMock->expects($this->exactly(2))
             ->method('getDataByKey')
-            ->with(AbstractDataAssignObserver::DATA_CODE)
-            ->willReturn($dataMock);
-        $eventMock->expects($this->at(1))
-            ->method('getDataByKey')
-            ->with(AbstractDataAssignObserver::MODEL_CODE)
-            ->willReturn($paymentInfoMock);
+            ->willReturnMap([
+                [AbstractDataAssignObserver::DATA_CODE, $dataMock],
+                [AbstractDataAssignObserver::MODEL_CODE, $paymentInfoMock],
+            ]);
 
         $observerMock = $this->createObserverMock();
-        $observerMock->expects($this->any())
+        $observerMock
             ->method('getEvent')
             ->willReturn($eventMock);
 
