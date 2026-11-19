@@ -20,11 +20,11 @@ class CartRuleCombineTest extends \PHPUnit\Framework\TestCase
     {
         $result = $this->cartRuleCombineSource->toOptionArray();
 
-        $this->assertInternalType('array', $result);
+        $this->assertIsArray($result);
         $this->assertNotEmpty($result);
 
         $randomEl = $result[array_rand($result)];
-        $this->assertInternalType('array', $randomEl);
+        $this->assertIsArray($randomEl);
         $this->assertArrayHasKey('value', $randomEl);
         $this->assertArrayHasKey('label', $randomEl);
     }

@@ -5,7 +5,6 @@ namespace Swarming\SubscribePro\Test\Unit\Plugin\Product;
 use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Helper\Product\Configuration as ProductConfiguration;
 use Magento\Catalog\Model\Product\Configuration\Item\ItemInterface as ConfigurationItemInterface;
-use SubscribePro\Service\Product\ProductInterface as PlatformProductInterface;
 use Swarming\SubscribePro\Helper\Product as ProductHelper;
 use Swarming\SubscribePro\Helper\QuoteItem as QuoteItemHelper;
 use Swarming\SubscribePro\Plugin\Product\Configuration;
@@ -64,12 +63,13 @@ class ConfigurationTest extends \PHPUnit\Framework\TestCase
 
     /**
      * @param array $subjectResult
-     * @param string $subscriptionOption
+     * @param bool|null $createNewSubscription
      * @param string $subscriptionInterval
      * @param array $result
      * @dataProvider aroundGetCustomOptionsDataProvider
      */
-    public function testAroundGetCustomOptions($subjectResult, $subscriptionOption, $subscriptionInterval, $result)
+    #[\PHPUnit\Framework\Attributes\DataProvider('aroundGetCustomOptionsDataProvider')]
+    public function testAroundGetCustomOptions($subjectResult, $createNewSubscription, $subscriptionInterval, $result)
     {
         $subjectMock = $this->createProductConfigurationMock();
         $productMock = $this->createProductMock();
@@ -85,10 +85,10 @@ class ConfigurationTest extends \PHPUnit\Framework\TestCase
             ->willReturn(true);
 
         $this->quoteItemHelperMock->expects($this->once())
-            ->method('getSubscriptionOption')
+            ->method('getCreateNewSubscriptionAtCheckout')
             ->with($configurationItemMock)
-            ->willReturn($subscriptionOption);
-        $this->quoteItemHelperMock->expects($this->any())
+            ->willReturn($createNewSubscription);
+        $this->quoteItemHelperMock->expects($createNewSubscription ? $this->once() : $this->never())
             ->method('getSubscriptionInterval')
             ->with($configurationItemMock)
             ->willReturn($subscriptionInterval);
@@ -102,35 +102,38 @@ class ConfigurationTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function aroundGetCustomOptionsDataProvider()
+    public static function aroundGetCustomOptionsDataProvider()
     {
         return [
-            'Unknown subscription option:return subject result' => [
+            'Unset subscription flag:one time delivery' => [
                 'subjectResult' => ['key' => 'value'],
-                'subscriptionOption' => 'unknown',
+                'createNewSubscription' => null,
                 'subscriptionInterval' => null,
-                'result' => ['key' => 'value']
+                'result' => [
+                    'key' => 'value',
+                    ['label' => 'Delivery', 'value' => 'One Time']
+                ]
             ],
             'Onetime purchase subscription option:return merged result' => [
                 'subjectResult' => [
                     ['label' => 'some_label', 'value' => 'some_value']
                 ],
-                'subscriptionOption' => PlatformProductInterface::SO_ONETIME_PURCHASE,
+                'createNewSubscription' => false,
                 'subscriptionInterval' => 'interval',
                 'result' => [
                     ['label' => 'some_label', 'value' => 'some_value'],
-                    ['label' => __('Delivery'), 'value' => __('One Time')],
+                    ['label' => (string)__('Delivery'), 'value' => (string)__('One Time')],
                 ]
             ],
             'Subscribe subscription option:return merged result' => [
                 'subjectResult' => [
                     ['label' => 'key', 'value' => 'val']
                 ],
-                'subscriptionOption' => PlatformProductInterface::SO_SUBSCRIPTION,
+                'createNewSubscription' => true,
                 'subscriptionInterval' => 'monthly',
                 'result' => [
                     ['label' => 'key', 'value' => 'val'],
-                    ['label' => __('Regular Delivery'), 'value' => __('monthly')],
+                    ['label' => (string)__('Regular Delivery'), 'value' => (string)__('monthly')],
                 ]
             ],
         ];
@@ -149,7 +152,7 @@ class ConfigurationTest extends \PHPUnit\Framework\TestCase
      */
     private function createProductConfigurationItemMock()
     {
-        return $this->getMockBuilder(ConfigurationItemInterface::class)->getMockForAbstractClass();
+        return $this->getMockBuilder(ConfigurationItemInterface::class)->getMock();
     }
 
     /**

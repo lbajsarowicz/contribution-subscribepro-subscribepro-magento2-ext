@@ -61,6 +61,7 @@ class InspectorRepositoryTest extends \PHPUnit\Framework\TestCase
      * @param string $productType
      * @dataProvider getInspectorDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getInspectorDataProvider')]
     public function testGetInspector($productType)
     {
         $inspectorMock = $this->getMockBuilder(InspectorInterface::class)
@@ -77,7 +78,7 @@ class InspectorRepositoryTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getInspectorDataProvider()
+    public static function getInspectorDataProvider()
     {
         return [
             'product type 1' => [

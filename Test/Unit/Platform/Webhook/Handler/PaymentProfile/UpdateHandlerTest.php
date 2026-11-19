@@ -66,12 +66,10 @@ class UpdateHandlerTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    /**
-     * @expectedException \Magento\Framework\Exception\NoSuchEntityException
-     * @expectedExceptionMessage Saved card is not found for payment_id=4422 and customer_id=5566
-     */
     public function testExecuteIfPaymentTokenNotFound()
     {
+        $this->expectException(\Magento\Framework\Exception\NoSuchEntityException::class);
+        $this->expectExceptionMessage('Saved card is not found for payment_id=4422 and customer_id=5566');
         $paymentProfileId = 4422;
         $customerId = 5566;
         $profileData = [
@@ -80,18 +78,18 @@ class UpdateHandlerTest extends \PHPUnit\Framework\TestCase
         ];
 
         $webhookEventMock = $this->createWebhookEventMock();
-        $webhookEventMock->expects($this->at(0))
+        $getEventDataCalls = [
+            ['payment_profile', $profileData],
+            ['payment_profile_id', $paymentProfileId],
+            ['payment_profile_id', $paymentProfileId],
+        ];
+        $webhookEventMock->expects($this->exactly(3))
             ->method('getEventData')
-            ->with('payment_profile')
-            ->willReturn($profileData);
-        $webhookEventMock->expects($this->at(1))
-            ->method('getEventData')
-            ->with('payment_profile_id')
-            ->willReturn($paymentProfileId);
-        $webhookEventMock->expects($this->at(2))
-            ->method('getEventData')
-            ->with('payment_profile_id')
-            ->willReturn($paymentProfileId);
+            ->willReturnCallback(function ($arg) use (&$getEventDataCalls) {
+                [$expectedArg, $result] = array_shift($getEventDataCalls);
+                $this->assertEquals($expectedArg, $arg);
+                return $result;
+            });
 
         $this->paymentTokenManagementMock->expects($this->once())
             ->method('getByGatewayToken')
@@ -117,18 +115,18 @@ class UpdateHandlerTest extends \PHPUnit\Framework\TestCase
         $paymentTokenMock = $this->createPaymentTokenMock();
 
         $webhookEventMock = $this->createWebhookEventMock();
-        $webhookEventMock->expects($this->at(0))
+        $getEventDataCalls = [
+            ['payment_profile', $profileData],
+            ['payment_profile_id', $paymentProfileId],
+            ['payment_profile', $profileData],
+        ];
+        $webhookEventMock->expects($this->exactly(3))
             ->method('getEventData')
-            ->with('payment_profile')
-            ->willReturn($profileData);
-        $webhookEventMock->expects($this->at(1))
-            ->method('getEventData')
-            ->with('payment_profile_id')
-            ->willReturn($paymentProfileId);
-        $webhookEventMock->expects($this->at(2))
-            ->method('getEventData')
-            ->with('payment_profile')
-            ->willReturn($profileData);
+            ->willReturnCallback(function ($arg) use (&$getEventDataCalls) {
+                [$expectedArg, $result] = array_shift($getEventDataCalls);
+                $this->assertEquals($expectedArg, $arg);
+                return $result;
+            });
 
         $this->paymentTokenManagementMock->expects($this->once())
             ->method('getByGatewayToken')
@@ -162,22 +160,19 @@ class UpdateHandlerTest extends \PHPUnit\Framework\TestCase
         $paymentTokenMock = $this->createPaymentTokenMock();
 
         $webhookEventMock = $this->createWebhookEventMock();
-        $webhookEventMock->expects($this->at(0))
+        $getEventDataCalls = [
+            ['payment_profile', $profileData],
+            ['customer', $customerData],
+            ['payment_profile_id', $paymentProfileId],
+            ['payment_profile', $profileData],
+        ];
+        $webhookEventMock->expects($this->exactly(4))
             ->method('getEventData')
-            ->with('payment_profile')
-            ->willReturn($profileData);
-        $webhookEventMock->expects($this->at(1))
-            ->method('getEventData')
-            ->with('customer')
-            ->willReturn($customerData);
-        $webhookEventMock->expects($this->at(2))
-            ->method('getEventData')
-            ->with('payment_profile_id')
-            ->willReturn($paymentProfileId);
-        $webhookEventMock->expects($this->at(3))
-            ->method('getEventData')
-            ->with('payment_profile')
-            ->willReturn($profileData);
+            ->willReturnCallback(function ($arg) use (&$getEventDataCalls) {
+                [$expectedArg, $result] = array_shift($getEventDataCalls);
+                $this->assertEquals($expectedArg, $arg);
+                return $result;
+            });
 
         $this->paymentTokenManagementMock->expects($this->once())
             ->method('getByGatewayToken')
@@ -208,6 +203,7 @@ class UpdateHandlerTest extends \PHPUnit\Framework\TestCase
      * @param int $customerId
      * @dataProvider executeWithCustomerEmailDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('executeWithCustomerEmailDataProvider')]
     public function testExecuteWithCustomerEmail($profileData, $customerData, $paymentProfileId, $email, $customerId)
     {
         $customerMock = $this->createCustomerMock();
@@ -217,22 +213,19 @@ class UpdateHandlerTest extends \PHPUnit\Framework\TestCase
         $paymentTokenMock = $this->createPaymentTokenMock();
 
         $webhookEventMock = $this->createWebhookEventMock();
-        $webhookEventMock->expects($this->at(0))
+        $getEventDataCalls = [
+            ['payment_profile', $profileData],
+            ['customer', $customerData],
+            ['payment_profile_id', $paymentProfileId],
+            ['payment_profile', $profileData],
+        ];
+        $webhookEventMock->expects($this->exactly(4))
             ->method('getEventData')
-            ->with('payment_profile')
-            ->willReturn($profileData);
-        $webhookEventMock->expects($this->at(1))
-            ->method('getEventData')
-            ->with('customer')
-            ->willReturn($customerData);
-        $webhookEventMock->expects($this->at(2))
-            ->method('getEventData')
-            ->with('payment_profile_id')
-            ->willReturn($paymentProfileId);
-        $webhookEventMock->expects($this->at(3))
-            ->method('getEventData')
-            ->with('payment_profile')
-            ->willReturn($profileData);
+            ->willReturnCallback(function ($arg) use (&$getEventDataCalls) {
+                [$expectedArg, $result] = array_shift($getEventDataCalls);
+                $this->assertEquals($expectedArg, $arg);
+                return $result;
+            });
 
         $this->paymentTokenManagementMock->expects($this->once())
             ->method('getByGatewayToken')
@@ -263,7 +256,7 @@ class UpdateHandlerTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function executeWithCustomerEmailDataProvider()
+    public static function executeWithCustomerEmailDataProvider()
     {
         return [
             'Email is in profile data' => [

@@ -2,8 +2,7 @@
 
 namespace Swarming\SubscribePro\Test\Unit\Helper;
 
-use Magento\Quote\Api\Data\CartInterface;
-use Magento\Quote\Model\Quote\Item as QuoteItem;
+use Magento\Quote\Model\Quote as QuoteModel;
 use Swarming\SubscribePro\Helper\Quote;
 use Swarming\SubscribePro\Helper\QuoteItem as QuoteItemHelper;
 
@@ -30,13 +29,14 @@ class QuoteTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @param null|array $items
+     * @param iterable $items
      * @dataProvider hasSubscriptionIfNoItemsDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('hasSubscriptionIfNoItemsDataProvider')]
     public function testHasSubscriptionIfNoItems($items)
     {
         $quoteMock = $this->createQuoteMock();
-        $quoteMock->expects($this->once())->method('getItems')->willReturn($items);
+        $quoteMock->expects($this->once())->method('getItemsCollection')->willReturn($items);
 
         $this->assertFalse($this->quoteHelper->hasSubscription($quoteMock));
     }
@@ -44,32 +44,37 @@ class QuoteTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function hasSubscriptionIfNoItemsDataProvider()
+    public static function hasSubscriptionIfNoItemsDataProvider()
     {
         return [
-            'Null items' => ['items' => null],
+            'Empty iterator' => ['items' => new \ArrayIterator([])],
             'Empty items' => ['items' => []],
         ];
     }
 
     /**
-     * @param null|\Magento\Quote\Model\Quote\Item[] $quoteItems
+     * @param int $itemCount
      * @param bool[] $hasSubscriptionItemResults
      * @param bool $hasSubscription
      * @dataProvider hasSubscriptionDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('hasSubscriptionDataProvider')]
     public function testHasSubscription(
-        $quoteItems,
+        $itemCount,
         $hasSubscriptionItemResults,
         $hasSubscription
     ) {
+        $quoteItems = [];
+        for ($index = 0; $index < $itemCount; $index++) {
+            $quoteItems[] = $this->createMock(\Magento\Quote\Model\Quote\Item::class);
+        }
         $quoteItemHasSubscriptionMap = [];
         foreach ($quoteItems as $key => $quoteItem) {
             $quoteItemHasSubscriptionMap[] = [$quoteItems[$key], $hasSubscriptionItemResults[$key]];
         }
 
         $quoteMock = $this->createQuoteMock();
-        $quoteMock->expects($this->once())->method('getItems')->willReturn($quoteItems);
+        $quoteMock->expects($this->once())->method('getItemsCollection')->willReturn($quoteItems);
 
         $this->quoteItemHelperMock->expects($this->exactly(count($quoteItems)))
             ->method('hasSubscription')
@@ -84,25 +89,21 @@ class QuoteTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function hasSubscriptionDataProvider()
+    public static function hasSubscriptionDataProvider()
     {
         return [
             'Empty items' => [
-                'quoteItems' => [],
+                'itemCount' => 0,
                 'hasSubscriptionItemResults' => null,
                 'hasSubscription' => false
             ],
             'Items don\'t have subscription' => [
-                'quoteItems' => [$this->createQuoteItemMock(), $this->createQuoteItemMock()],
+                'itemCount' => 2,
                 'hasSubscriptionItemResults' => [false, false],
                 'hasSubscription' => false
             ],
             'One of items has subscription' => [
-                'quoteItems' => [
-                    $this->createQuoteItemMock(),
-                    $this->createQuoteItemMock(),
-                    $this->createQuoteItemMock()
-                ],
+                'itemCount' => 3,
                 'hasSubscriptionItemResults' => [false, false, true],
                 'hasSubscription' => true
             ]
@@ -110,21 +111,10 @@ class QuoteTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Quote\Model\Quote\Item
-     */
-    private function createQuoteItemMock()
-    {
-        return $this->getMockBuilder(QuoteItem::class)
-            ->disableOriginalConstructor()
-            ->setMethods(['__clone', '__wakeUp'])
-            ->getMock();
-    }
-
-    /**
      * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Quote\Api\Data\CartInterface
      */
     private function createQuoteMock()
     {
-        return $this->getMockBuilder(CartInterface::class)->getMock();
+        return $this->getMockBuilder(QuoteModel::class)->disableOriginalConstructor()->getMock();
     }
 }

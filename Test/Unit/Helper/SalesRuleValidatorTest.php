@@ -24,6 +24,7 @@ class SalesRuleValidatorTest extends \PHPUnit\Framework\TestCase
      * @param string $combineType
      * @dataProvider getIsOnlySubscriptionDiscountDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getIsOnlySubscriptionDiscountDataProvider')]
     public function testIsOnlySubscriptionDiscount(
         $expected,
         $baseSubscriptionDiscount,
@@ -43,7 +44,7 @@ class SalesRuleValidatorTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getIsOnlySubscriptionDiscountDataProvider()
+    public static function getIsOnlySubscriptionDiscountDataProvider()
     {
         return [
             'Apply greatest discount, subscription discount is greater' => [
@@ -111,6 +112,7 @@ class SalesRuleValidatorTest extends \PHPUnit\Framework\TestCase
      * @param int $qty
      * @dataProvider getGetBaseSubscriptionDiscountDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getGetBaseSubscriptionDiscountDataProvider')]
     public function testGetBaseSubscriptionDiscount(
         $expected,
         $isDiscountPercentage,
@@ -132,7 +134,7 @@ class SalesRuleValidatorTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getGetBaseSubscriptionDiscountDataProvider()
+    public static function getGetBaseSubscriptionDiscountDataProvider()
     {
         return [
             'Percentage discount, quantity 1' => [

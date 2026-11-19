@@ -33,6 +33,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
      * @param array $subscriptionParams
      * @dataProvider getIsNewSubscriptionDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getIsNewSubscriptionDataProvider')]
     public function testIsNewSubscription($expected, $subscriptionParams)
     {
         $this->assertEquals($expected, $this->discountRuleHelper->isNewSubscription($subscriptionParams));
@@ -41,7 +42,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getIsNewSubscriptionDataProvider()
+    public static function getIsNewSubscriptionDataProvider()
     {
         return [
             'Without subscription params' => [
@@ -79,6 +80,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
      * @param array $subscriptionParams
      * @dataProvider getIsItemFulfilsSubscriptionDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getIsItemFulfilsSubscriptionDataProvider')]
     public function testIsItemFulfilsSubscription($expected, $subscriptionParams)
     {
         $this->assertEquals($expected, $this->discountRuleHelper->isItemFulfilsSubscription($subscriptionParams));
@@ -87,7 +89,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getIsItemFulfilsSubscriptionDataProvider()
+    public static function getIsItemFulfilsSubscriptionDataProvider()
     {
         return [
             'Without subscription params' => [
@@ -125,6 +127,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
      * @param array $subscriptionParams
      * @dataProvider getIsItemNewOrFulfillingSubscriptionDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getIsItemNewOrFulfillingSubscriptionDataProvider')]
     public function testIsItemNewOrFulfillingSubscription($expected, $subscriptionParams)
     {
         $this->assertEquals(
@@ -136,7 +139,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getIsItemNewOrFulfillingSubscriptionDataProvider()
+    public static function getIsItemNewOrFulfillingSubscriptionDataProvider()
     {
         return [
             'Without subscription params' => [
@@ -174,6 +177,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
      * @param array $subscriptionParams
      * @dataProvider getGetSubscriptionOptionsDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getGetSubscriptionOptionsDataProvider')]
     public function testGetSubscriptionOptions($expected, $subscriptionParams)
     {
         $this->assertEquals($expected, $this->discountRuleHelper->getSubscriptionOptions($subscriptionParams));
@@ -182,7 +186,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getGetSubscriptionOptionsDataProvider()
+    public static function getGetSubscriptionOptionsDataProvider()
     {
         return [
             'Without params' => [
@@ -192,7 +196,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
                     'reorder_ordinal' => false,
                     'interval' => false,
                 ],
-                'params' => [],
+                'subscriptionParams' => [],
             ],
             'With params, one-time purchase' => [
                 'expected' => [
@@ -201,7 +205,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
                     'reorder_ordinal' => false,
                     'interval' => false,
                 ],
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "onetime_purchase",
                     "interval" => null,
                     "create_new_subscription_at_checkout" => false,
@@ -214,7 +218,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
                     'reorder_ordinal' => 0,
                     'interval' => 'One Month',
                 ],
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "subscription",
                     "interval" => "One Month",
                     "create_new_subscription_at_checkout" => true,
@@ -227,7 +231,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
                     'reorder_ordinal' => 2,
                     'interval' => 'One Month',
                 ],
-                'params' => [
+                'subscriptionParams' => [
                     "interval" => 'One Month',
                     "reorder_ordinal" => 2,
                     "item_fulfils_subscription" => true,
@@ -241,6 +245,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
      * @param array $subscriptionParams
      * @dataProvider getValidateReorderOrdinalDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getValidateReorderOrdinalDataProvider')]
     public function testValidateReorderOrdinal($expected, $subscriptionParams)
     {
         $this->assertEquals($expected, $this->discountRuleHelper->validateReorderOrdinal($subscriptionParams));
@@ -249,16 +254,16 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getValidateReorderOrdinalDataProvider()
+    public static function getValidateReorderOrdinalDataProvider()
     {
         return [
             'Without params' => [
                 'expected' => false,
-                'params' => [],
+                'subscriptionParams' => [],
             ],
             'Subscription Options are false' => [
                 'expected' => false,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => false,
                     "interval" => false,
                     "reorder_ordinal" => false,
@@ -267,7 +272,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'Non subscription' => [
                 'expected' => false,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "onetime_purchase",
                     "interval" => null,
                     "create_new_subscription_at_checkout" => false,
@@ -275,7 +280,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With params, new subscription' => [
                 'expected' => false,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "subscription",
                     "interval" => "One Month",
                     "create_new_subscription_at_checkout" => true,
@@ -283,7 +288,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With subscription params, fulfilling' => [
                 'expected' => 2,
-                'params' => [
+                'subscriptionParams' => [
                     "interval" => 'One Month',
                     "reorder_ordinal" => 2,
                     "item_fulfils_subscription" => true,
@@ -297,6 +302,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
      * @param array $subscriptionParams
      * @dataProvider getValidateIntervalDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getValidateIntervalDataProvider')]
     public function testValidateInterval($expected, $subscriptionParams)
     {
         $this->assertEquals($expected, $this->discountRuleHelper->validateInterval($subscriptionParams));
@@ -305,16 +311,16 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getValidateIntervalDataProvider()
+    public static function getValidateIntervalDataProvider()
     {
         return [
             'Without params' => [
                 'expected' => false,
-                'params' => [],
+                'subscriptionParams' => [],
             ],
             'Subscription Options are false' => [
                 'expected' => false,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => false,
                     "interval" => false,
                     "reorder_ordinal" => false,
@@ -323,7 +329,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'Non subscription' => [
                 'expected' => false,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "onetime_purchase",
                     "interval" => null,
                     "create_new_subscription_at_checkout" => false,
@@ -331,7 +337,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With params, new subscription' => [
                 'expected' => 'One Month',
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "subscription",
                     "interval" => "One Month",
                     "create_new_subscription_at_checkout" => true,
@@ -339,7 +345,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With subscription params, fulfilling' => [
                 'expected' => 'One Month',
-                'params' => [
+                'subscriptionParams' => [
                     "interval" => 'One Month',
                     "reorder_ordinal" => 2,
                     "item_fulfils_subscription" => true,
@@ -355,6 +361,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
      * @param string $op
      * @dataProvider getValidateStatusDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getValidateStatusDataProvider')]
     public function testValidateStatus($expected, $subscriptionParams, $conditionValue, $op)
     {
         $this->assertEquals(
@@ -366,18 +373,18 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getValidateStatusDataProvider()
+    public static function getValidateStatusDataProvider()
     {
         return [
             'Without params, applies to any subscription' => [
                 'expected' => false,
-                'params' => [],
+                'subscriptionParams' => [],
                 'conditionValue' => ConditionBase::SUBSCRIPTION_STATUS_ANY,
                 'op' => '==',
             ],
             'Subscription Options are false, applies to any subscription' => [
                 'expected' => false,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => false,
                     "interval" => false,
                     "reorder_ordinal" => false,
@@ -388,7 +395,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'Subscription Options are false, applies to any subscription, negated result' => [
                 'expected' => true,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => false,
                     "interval" => false,
                     "reorder_ordinal" => false,
@@ -399,7 +406,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'Non subscription, applies to any subscription' => [
                 'expected' => false,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "onetime_purchase",
                     "interval" => null,
                     "create_new_subscription_at_checkout" => false,
@@ -409,7 +416,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'Non subscription, applies to any subscription, negated result' => [
                 'expected' => true,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "onetime_purchase",
                     "interval" => null,
                     "create_new_subscription_at_checkout" => false,
@@ -419,7 +426,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'Non subscription, applies to new subscription, negated result' => [
                 'expected' => true,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "onetime_purchase",
                     "interval" => null,
                     "create_new_subscription_at_checkout" => false,
@@ -429,7 +436,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'Non subscription, applies to recurring subscription, negated result' => [
                 'expected' => true,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "onetime_purchase",
                     "interval" => null,
                     "create_new_subscription_at_checkout" => false,
@@ -439,7 +446,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With params, new subscription, applies to any subscription' => [
                 'expected' => true,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "subscription",
                     "interval" => "One Month",
                     "create_new_subscription_at_checkout" => true,
@@ -449,7 +456,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With params, new subscription, applies to new subscription' => [
                 'expected' => true,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "subscription",
                     "interval" => "One Month",
                     "create_new_subscription_at_checkout" => true,
@@ -459,7 +466,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With params, new subscription, applies to recurring subscription' => [
                 'expected' => false,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "subscription",
                     "interval" => "One Month",
                     "create_new_subscription_at_checkout" => true,
@@ -469,7 +476,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With params, new subscription, applies to any subscription, negated result' => [
                 'expected' => false,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "subscription",
                     "interval" => "One Month",
                     "create_new_subscription_at_checkout" => true,
@@ -479,7 +486,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With params, new subscription, applies to new subscription, negated result' => [
                 'expected' => false,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "subscription",
                     "interval" => "One Month",
                     "create_new_subscription_at_checkout" => true,
@@ -489,7 +496,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With params, new subscription, applies to recurring subscription, negated result' => [
                 'expected' => true,
-                'params' => [
+                'subscriptionParams' => [
                     "option" => "subscription",
                     "interval" => "One Month",
                     "create_new_subscription_at_checkout" => true,
@@ -499,7 +506,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With subscription params, fulfilling, applies to any subscription' => [
                 'expected' => true,
-                'params' => [
+                'subscriptionParams' => [
                     "interval" => 'One Month',
                     "reorder_ordinal" => 2,
                     "item_fulfils_subscription" => true,
@@ -509,7 +516,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With subscription params, fulfilling, applies to new subscription' => [
                 'expected' => false,
-                'params' => [
+                'subscriptionParams' => [
                     "interval" => 'One Month',
                     "reorder_ordinal" => 2,
                     "item_fulfils_subscription" => true,
@@ -519,7 +526,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With subscription params, fulfilling, applies to recurring subscription' => [
                 'expected' => true,
-                'params' => [
+                'subscriptionParams' => [
                     "interval" => 'One Month',
                     "reorder_ordinal" => 2,
                     "item_fulfils_subscription" => true,
@@ -529,7 +536,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With subscription params, fulfilling, applies to any subscription, negated result' => [
                 'expected' => false,
-                'params' => [
+                'subscriptionParams' => [
                     "interval" => 'One Month',
                     "reorder_ordinal" => 2,
                     "item_fulfils_subscription" => true,
@@ -539,7 +546,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With subscription params, fulfilling, applies to new subscription, negated result' => [
                 'expected' => true,
-                'params' => [
+                'subscriptionParams' => [
                     "interval" => 'One Month',
                     "reorder_ordinal" => 2,
                     "item_fulfils_subscription" => true,
@@ -549,7 +556,7 @@ class DiscountRuleTest extends \PHPUnit\Framework\TestCase
             ],
             'With subscription params, fulfilling, applies to recurring subscription, negated result' => [
                 'expected' => false,
-                'params' => [
+                'subscriptionParams' => [
                     "interval" => 'One Month',
                     "reorder_ordinal" => 2,
                     "item_fulfils_subscription" => true,

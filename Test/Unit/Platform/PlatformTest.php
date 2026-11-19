@@ -43,7 +43,7 @@ class PlatformTest extends \PHPUnit\Framework\TestCase
     {
         $this->sdkFactoryMock = $this->getMockBuilder(SdkFactory::class)
             ->disableOriginalConstructor()
-            ->setMethods(['create'])
+            ->onlyMethods(['create'])
             ->getMock();
         $this->platformConfigMock = $this->getMockBuilder(PlatformConfig::class)
             ->disableOriginalConstructor()->getMock();

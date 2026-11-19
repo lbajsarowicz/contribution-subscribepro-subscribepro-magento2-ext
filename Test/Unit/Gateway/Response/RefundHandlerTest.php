@@ -35,6 +35,7 @@ class RefundHandlerTest extends \PHPUnit\Framework\TestCase
      * @dataProvider handleWithInvalidPaymentDataProvider
      * @param mixed $payment
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('handleWithInvalidPaymentDataProvider')]
     public function testHandleWithInvalidPayment($payment)
     {
         $handlingSubject = ['subject'];
@@ -56,7 +57,7 @@ class RefundHandlerTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function handleWithInvalidPaymentDataProvider()
+    public static function handleWithInvalidPaymentDataProvider()
     {
         return [
             'Payment is null' => ['payment' => null],
@@ -76,6 +77,7 @@ class RefundHandlerTest extends \PHPUnit\Framework\TestCase
      * @param bool $canRefund
      * @param bool $shouldCloseParentTransaction
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('handleDataProvider')]
     public function testHandle(
         $handlingSubject,
         $response,
@@ -132,7 +134,7 @@ class RefundHandlerTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function handleDataProvider()
+    public static function handleDataProvider()
     {
         return [
             'Can refund' => [

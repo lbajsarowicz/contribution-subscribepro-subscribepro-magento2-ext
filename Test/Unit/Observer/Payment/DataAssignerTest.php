@@ -5,7 +5,7 @@ namespace Swarming\SubscribePro\Test\Unit\Observer\Payment;
 use Magento\Framework\DataObject;
 use Magento\Framework\Event;
 use Magento\Framework\Event\Observer;
-use Magento\Payment\Model\InfoInterface as PaymentInfoInterface;
+use Magento\Sales\Model\Order\Payment as PaymentInfo;
 use Magento\Payment\Observer\AbstractDataAssignObserver;
 use Magento\Quote\Api\Data\PaymentInterface;
 use Swarming\SubscribePro\Gateway\Request\PaymentDataBuilder;
@@ -38,7 +38,7 @@ class DataAssignerTest extends \PHPUnit\Framework\TestCase
             ->willReturn($dataMock);
 
         $observerMock = $this->createObserverMock();
-        $observerMock->expects($this->any())
+        $observerMock
             ->method('getEvent')
             ->willReturn($eventMock);
 
@@ -63,22 +63,28 @@ class DataAssignerTest extends \PHPUnit\Framework\TestCase
             ->method('setAdditionalInformation')
             ->with(PaymentDataBuilder::PAYMENT_METHOD_TOKEN, 'payment token');
 
+        $cardData = [];
+        $paymentInfoMock->expects($this->exactly(3))
+            ->method('setData')
+            ->willReturnCallback(function ($key, $value) use (&$cardData) {
+                $cardData[$key] = $value;
+            });
+
         $eventMock = $this->createEventMock();
-        $eventMock->expects($this->at(0))
+        $eventMock->expects($this->exactly(2))
             ->method('getDataByKey')
-            ->with(AbstractDataAssignObserver::DATA_CODE)
-            ->willReturn($dataMock);
-        $eventMock->expects($this->at(1))
-            ->method('getDataByKey')
-            ->with(AbstractDataAssignObserver::MODEL_CODE)
-            ->willReturn($paymentInfoMock);
+            ->willReturnMap([
+                [AbstractDataAssignObserver::DATA_CODE, $dataMock],
+                [AbstractDataAssignObserver::MODEL_CODE, $paymentInfoMock],
+            ]);
 
         $observerMock = $this->createObserverMock();
-        $observerMock->expects($this->any())
+        $observerMock
             ->method('getEvent')
             ->willReturn($eventMock);
 
         $this->paymentDataAssigner->execute($observerMock);
+        $this->assertSame(['cc_exp_month' => '', 'cc_exp_year' => '', 'cc_type' => ''], $cardData);
     }
 
     /**
@@ -94,7 +100,7 @@ class DataAssignerTest extends \PHPUnit\Framework\TestCase
      */
     private function createPaymentInfoMock()
     {
-        return $this->getMockBuilder(PaymentInfoInterface::class)->getMock();
+        return $this->getMockBuilder(PaymentInfo::class)->disableOriginalConstructor()->getMock();
     }
 
     /**

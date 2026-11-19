@@ -49,12 +49,10 @@ class AddressManagementTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    /**
-     * @expectedExceptionMessage An error occurred while saving address in the address book.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToSaveInAddressBook()
     {
+        $this->expectExceptionMessage('An error occurred while saving address in the address book.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $exception = new LocalizedException(__('error'));
 
         $customerAddressMock = $this->getMockBuilder(AddressInterface::class)->getMock();

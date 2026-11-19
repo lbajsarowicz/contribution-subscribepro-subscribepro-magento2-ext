@@ -2,7 +2,7 @@
 
 namespace Swarming\SubscribePro\Test\Unit\Model\CatalogRule\Inspector;
 
-use Magento\Catalog\Model\Product\Configuration\Item\Option as ProductConfigurationOption;
+use Swarming\SubscribePro\Test\Unit\Catalog\ConfigurationOption as ProductConfigurationOption;
 use Swarming\SubscribePro\Model\CatalogRule\Inspector\ConfigurableProduct;
 
 class ConfigurableProductTest extends AbstractInspector
@@ -33,7 +33,7 @@ class ConfigurableProductTest extends AbstractInspector
 
         $option = $this->getMockBuilder(ProductConfigurationOption::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getProduct'])
+            ->onlyMethods(['getProduct'])
             ->getMock();
         $option->expects($this->atLeastOnce())
             ->method('getProduct')
@@ -74,6 +74,7 @@ class ConfigurableProductTest extends AbstractInspector
      * @param string $dateString
      * @dataProvider isAppliedDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('isAppliedDataProvider')]
     public function testIsApplied(
         $isApplied,
         $rulePrice,
@@ -114,7 +115,7 @@ class ConfigurableProductTest extends AbstractInspector
 
         $option = $this->getMockBuilder(ProductConfigurationOption::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getProduct'])
+            ->onlyMethods(['getProduct'])
             ->getMock();
         $option->expects($this->atLeastOnce())
             ->method('getProduct')
@@ -141,6 +142,7 @@ class ConfigurableProductTest extends AbstractInspector
      * @param string $dateString
      * @dataProvider isAppliedDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('isAppliedDataProvider')]
     public function testIsAppliedIfNoChildProduct(
         $isApplied,
         $rulePrice,
@@ -175,7 +177,7 @@ class ConfigurableProductTest extends AbstractInspector
     /**
      * @return array
      */
-    public function isAppliedDataProvider()
+    public static function isAppliedDataProvider()
     {
         return [
             'applied' => [

@@ -40,6 +40,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
      * @param bool $result
      * @dataProvider isActiveDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('isActiveDataProvider')]
     public function testIsActive($isActiveValue, $result)
     {
         $this->scopeConfigMock->expects($this->once())
@@ -53,7 +54,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function isActiveDataProvider()
+    public static function isActiveDataProvider()
     {
         return [
             'Is active value is zero' => [
@@ -76,6 +77,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
      * @param bool $result
      * @dataProvider hasVerificationDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('hasVerificationDataProvider')]
     public function testHasVerification($hasVerification, $result)
     {
         $this->scopeConfigMock->expects($this->once())
@@ -89,7 +91,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function hasVerificationDataProvider()
+    public static function hasVerificationDataProvider()
     {
         return [
             'HasVerification value is bool false' => [
@@ -108,6 +110,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
      * @param array $result
      * @dataProvider getAvailableCardTypesDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getAvailableCardTypesDataProvider')]
     public function testGetAvailableCardTypes($ccTypes, $result)
     {
         $this->scopeConfigMock->expects($this->once())
@@ -121,7 +124,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getAvailableCardTypesDataProvider()
+    public static function getAvailableCardTypesDataProvider()
     {
         return [
             'Empty card types' => [
@@ -140,6 +143,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
      * @param array $result
      * @dataProvider getCcTypesMapperDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getCcTypesMapperDataProvider')]
     public function testGetCcTypesMapper($ccTypesMapper, $result)
     {
         $this->scopeConfigMock->expects($this->once())
@@ -153,7 +157,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getCcTypesMapperDataProvider()
+    public static function getCcTypesMapperDataProvider()
     {
         return [
             'CcTypesMapper is not array' => [
@@ -173,6 +177,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
      * @param string $result
      * @dataProvider getMappedCcTypeDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getMappedCcTypeDataProvider')]
     public function testGetMappedCcType($cardType, $ccTypesMapper, $result)
     {
         $this->scopeConfigMock->expects($this->once())
@@ -186,7 +191,7 @@ class ConfigTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getMappedCcTypeDataProvider()
+    public static function getMappedCcTypeDataProvider()
     {
         return [
             'Card type not found in CcTypesMapper:return card type' => [

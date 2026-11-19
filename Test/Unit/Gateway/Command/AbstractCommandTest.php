@@ -33,8 +33,8 @@ class AbstractCommandTest extends TestAbstractCommand
                 $this->platformTransactionServiceMock,
                 $this->loggerMock,
             ])
-            ->setMethods(['processTransaction'])
-            ->getMockForAbstractClass();
+            ->onlyMethods(['processTransaction'])
+            ->getMock();
 
         $this->requestBuilderMock->expects($this->once())
             ->method('build')
@@ -42,12 +42,10 @@ class AbstractCommandTest extends TestAbstractCommand
             ->willReturn($this->requestData);
     }
 
-    /**
-     * @expectedException \Magento\Payment\Gateway\Command\CommandException
-     * @expectedExceptionMessage Transaction has been declined. Please try again later.
-     */
     public function testExecuteIfFailToProcessTransaction()
     {
+        $this->expectException(\Magento\Payment\Gateway\Command\CommandException::class);
+        $this->expectExceptionMessage('Transaction has been declined. Please try again later.');
         $exception = new \InvalidArgumentException('message');
 
         $this->executeSetPlatformWebsite($this->subjectReaderMock, $this->storeManagerMock, $this->platformMock);
@@ -61,12 +59,10 @@ class AbstractCommandTest extends TestAbstractCommand
         $this->abstractCommand->execute($this->commandSubject);
     }
 
-    /**
-     * @expectedException \Magento\Payment\Gateway\Command\CommandException
-     * @expectedExceptionMessage Transaction has been declined. Please try again later.
-     */
     public function testFailToExecuteIfNotValid()
     {
+        $this->expectException(\Magento\Payment\Gateway\Command\CommandException::class);
+        $this->expectExceptionMessage('Transaction has been declined. Please try again later.');
         $transaction = $this->createTransactionMock();
         $this->executeSetPlatformWebsite($this->subjectReaderMock, $this->storeManagerMock, $this->platformMock);
 

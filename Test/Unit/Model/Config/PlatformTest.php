@@ -66,6 +66,7 @@ class PlatformTest extends \PHPUnit\Framework\TestCase
      * @param string $clientSecret
      * @dataProvider getClientSecretDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getClientSecretDataProvider')]
     public function testGetClientSecret($websiteCode, $scopeType, $clientSecret)
     {
         $this->scopeConfigMock->expects($this->once())
@@ -79,7 +80,7 @@ class PlatformTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getClientSecretDataProvider()
+    public static function getClientSecretDataProvider()
     {
         return [
             'Website code is false' => [

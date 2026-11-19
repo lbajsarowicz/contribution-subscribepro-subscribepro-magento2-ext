@@ -218,12 +218,10 @@ class UpdateProductAfterTest extends \PHPUnit\Framework\TestCase
         $this->updateProductAfter->execute($observerMock);
     }
 
-    /**
-     * @expectedException \Magento\Framework\Exception\NoSuchEntityException
-     * @expectedExceptionMessage error message
-     */
     public function testFailToExecuteIfNoPlatformProductInDeveloperMode()
     {
+        $this->expectException(\Magento\Framework\Exception\NoSuchEntityException::class);
+        $this->expectExceptionMessage('error message');
         $exception = new NoSuchEntityException(__('error message'));
 
         $subscriptionParams = ['subscription params'];
@@ -282,6 +280,7 @@ class UpdateProductAfterTest extends \PHPUnit\Framework\TestCase
      * @param string $appMode
      * @dataProvider failToExecuteIfNoPlatformProductDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('failToExecuteIfNoPlatformProductDataProvider')]
     public function testFailToExecuteIfNoPlatformProduct($sku, $exception, $message, $subscriptionParams, $appMode)
     {
         $productMock = $this->createProductMock();
@@ -337,7 +336,7 @@ class UpdateProductAfterTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function failToExecuteIfNoPlatformProductDataProvider()
+    public static function failToExecuteIfNoPlatformProductDataProvider()
     {
         return [
             'Default mode' => [
@@ -365,6 +364,7 @@ class UpdateProductAfterTest extends \PHPUnit\Framework\TestCase
      * @param array $warnings
      * @dataProvider executeDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('executeDataProvider')]
     public function testExecute($sku, $subscriptionParams, $subscriptionOption, $subscriptionInterval, $warnings)
     {
         $platformProductMock = $this->getMockBuilder(ProductInterface::class)->getMock();
@@ -424,7 +424,7 @@ class UpdateProductAfterTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function executeDataProvider()
+    public static function executeDataProvider()
     {
         return [
             'Subscription params not set' => [
@@ -470,7 +470,7 @@ class UpdateProductAfterTest extends \PHPUnit\Framework\TestCase
     {
         return $this->getMockBuilder(Product::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getParentItemId', 'getData', '__wakeup'])
+            ->onlyMethods(['getData', '__wakeup'])
             ->getMock();
     }
 }

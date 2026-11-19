@@ -11,10 +11,13 @@ use Psr\Log\LoggerInterface;
 use SubscribePro\Exception\HttpException;
 use SubscribePro\Service\Customer\CustomerInterface as PlatformCustomerInterface;
 use SubscribePro\Service\PaymentProfile\PaymentProfileInterface;
+use SubscribePro\Service\Subscription\SubscriptionInterface as PlatformSubscriptionInterface;
+use SubscribePro\Utils\SubscriptionUtils;
 use Swarming\SubscribePro\Api\Data\AddressInterface;
 use Swarming\SubscribePro\Api\Data\ProductInterface;
 use Swarming\SubscribePro\Api\Data\SubscriptionInterface;
 use Swarming\SubscribePro\Helper\SubscriptionProduct as SubscriptionProductsHelper;
+use Swarming\SubscribePro\Model\Subscription;
 use Swarming\SubscribePro\Model\Config\SubscriptionOptions as SubscriptionOptionsConfig;
 use Swarming\SubscribePro\Platform\Manager\Address as AddressManager;
 use Swarming\SubscribePro\Platform\Manager\Customer as CustomerManager;
@@ -93,17 +96,16 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
             $this->platformAddressManagerMock,
             $this->subscriptionProductHelperMock,
             $this->subscriptionOptionConfigMock,
+            new SubscriptionUtils(),
             $this->designMock,
             $this->loggerMock
         );
     }
 
-    /**
-     * @expectedExceptionMessage Unable to load subscriptions.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToGetSubscriptionsIfHttpError()
     {
+        $this->expectExceptionMessage('Unable to load subscriptions.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $platformCustomerId = 4321;
 
@@ -200,7 +202,7 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
     {
         $customerId = 1234;
         $platformCustomerId = 4321;
-        $subscriptions = ['subscriptions'];
+        $subscriptions = [$this->createMock(PlatformSubscriptionInterface::class)];
 
         $platformCustomerMock = $this->createPlatformCustomerMock();
         $platformCustomerMock->expects($this->once())->method('getId')->willReturn($platformCustomerId);
@@ -231,12 +233,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($subscriptions, $this->subscriptionManagement->getSubscriptions($customerId));
     }
 
-    /**
-     * @expectedExceptionMessage An error occurred while updating quantity.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToUpdateQtyIfHttpError()
     {
+        $this->expectExceptionMessage('An error occurred while updating quantity.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $qty = 12;
@@ -259,12 +259,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->updateQty($customerId, $subscriptionId, $qty);
     }
 
-    /**
-     * @expectedExceptionMessage Forbidden action.
-     * @expectedException \Magento\Framework\Exception\AuthorizationException
-     */
     public function testFailToUpdateQtyIfNotAuthorized()
     {
+        $this->expectExceptionMessage('Forbidden action.');
+        $this->expectException(\Magento\Framework\Exception\AuthorizationException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $qty = 12;
@@ -292,12 +290,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->updateQty($customerId, $subscriptionId, $qty);
     }
 
-    /**
-     * @expectedExceptionMessage The subscription is not found.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToUpdateQtyIfNoSubscriptionProduct()
     {
+        $this->expectExceptionMessage('The subscription is not found.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $qty = 12;
@@ -333,15 +329,16 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @expectedException \Magento\Framework\Exception\LocalizedException
      * @expectedExceptionMessageRegExp /Invalid quantity, it must be in range from \d+ to \d+\./
      * @dataProvider failToUpdateQtyIfInvalidQtyDataProvider
      * @param int $qty
      * @param int $minQty
      * @param int $maxQty
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('failToUpdateQtyIfInvalidQtyDataProvider')]
     public function testFailToUpdateQtyIfInvalidQty($qty, $minQty, $maxQty)
     {
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $platformCustomerId = 4321;
@@ -381,7 +378,7 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function failToUpdateQtyIfInvalidQtyDataProvider()
+    public static function failToUpdateQtyIfInvalidQtyDataProvider()
     {
         return [
             'Qty less than min' => [
@@ -441,12 +438,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->assertTrue($this->subscriptionManagement->updateQty($customerId, $subscriptionId, $qty));
     }
 
-    /**
-     * @expectedExceptionMessage An error occurred while updating interval.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToUpdateIntervalIfHttpError()
     {
+        $this->expectExceptionMessage('An error occurred while updating interval.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $interval = 'weekly';
@@ -468,12 +463,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->updateInterval($customerId, $subscriptionId, $interval);
     }
 
-    /**
-     * @expectedExceptionMessage The subscription is not found.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToUpdateIntervalIfNoCustomer()
     {
+        $this->expectExceptionMessage('The subscription is not found.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $interval = 'weekly';
@@ -496,12 +489,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->updateInterval($customerId, $subscriptionId, $interval);
     }
 
-    /**
-     * @expectedExceptionMessage Forbidden action.
-     * @expectedException \Magento\Framework\Exception\AuthorizationException
-     */
     public function testFailToUpdateIntervalIfNotAuthorized()
     {
+        $this->expectExceptionMessage('Forbidden action.');
+        $this->expectException(\Magento\Framework\Exception\AuthorizationException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $interval = 'weekly';
@@ -559,12 +550,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->assertTrue($this->subscriptionManagement->updateInterval($customerId, $subscriptionId, $interval));
     }
 
-    /**
-     * @expectedExceptionMessage Invalid next order date, it must be not earlier than 2 days in the future.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToUpdateNextOrderDateIfInvalidDate()
     {
+        $this->expectExceptionMessage('Invalid next order date, it must be not earlier than 2 days in the future.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $earliestDateForNextOrder = '2017-05-12';
         $nextOrderDate = '2017-05-11';
         $customerId = 1234;
@@ -580,12 +569,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->updateNextOrderDate($customerId, $subscriptionId, $nextOrderDate);
     }
 
-    /**
-     * @expectedExceptionMessage An error occurred while updating next order date.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToUpdateNextOrderDateIfHttpError()
     {
+        $this->expectExceptionMessage('An error occurred while updating next order date.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $earliestDateForNextOrder = '2017-05-12';
@@ -612,12 +599,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->updateNextOrderDate($customerId, $subscriptionId, $nextOrderDate);
     }
 
-    /**
-     * @expectedExceptionMessage The subscription is not found.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToUpdateNextOrderDateIfNoCustomer()
     {
+        $this->expectExceptionMessage('The subscription is not found.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $earliestDateForNextOrder = '2017-05-12';
@@ -645,12 +630,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->updateNextOrderDate($customerId, $subscriptionId, $nextOrderDate);
     }
 
-    /**
-     * @expectedExceptionMessage Forbidden action.
-     * @expectedException \Magento\Framework\Exception\AuthorizationException
-     */
     public function testFailToUpdateNextOrderDateIfNotAuthorized()
     {
+        $this->expectExceptionMessage('Forbidden action.');
+        $this->expectException(\Magento\Framework\Exception\AuthorizationException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $earliestDateForNextOrder = '2017-05-12';
@@ -724,12 +707,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    /**
-     * @expectedExceptionMessage An error occurred while updating payment profile.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToUpdatePaymentProfileIfHttpError()
     {
+        $this->expectExceptionMessage('An error occurred while updating payment profile.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $paymentProfileId = 7721;
@@ -751,12 +732,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->updatePaymentProfile($customerId, $subscriptionId, $paymentProfileId);
     }
 
-    /**
-     * @expectedExceptionMessage The subscription is not found.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToUpdatePaymentProfileIfNoCustomer()
     {
+        $this->expectExceptionMessage('The subscription is not found.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $paymentProfileId = 7721;
@@ -779,12 +758,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->updatePaymentProfile($customerId, $subscriptionId, $paymentProfileId);
     }
 
-    /**
-     * @expectedExceptionMessage Forbidden action.
-     * @expectedException \Magento\Framework\Exception\AuthorizationException
-     */
     public function testFailToUpdatePaymentProfileIfNotAuthorized()
     {
+        $this->expectExceptionMessage('Forbidden action.');
+        $this->expectException(\Magento\Framework\Exception\AuthorizationException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $paymentProfileId = 7721;
@@ -883,6 +860,9 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $oddSubscriptionMock = $this->createSubscriptionMock();
         $oddSubscriptionMock->expects($this->once())->method('getPaymentProfileId')->willReturn($oddPaymentProfileId);
 
+        $otherSubscriptionMock->method('getNextOrderDate')->willReturn('2026-02-01');
+        $oddSubscriptionMock->method('getNextOrderDate')->willReturn('2026-01-01');
+
         $subscriptions = [$otherSubscriptionMock, $oddSubscriptionMock];
 
         $platformCustomerMock = $this->createPlatformCustomerMock();
@@ -898,12 +878,12 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
             ->with($subscriptionId)
             ->willReturn($subscriptionMock);
 
+        $savedSubscriptions = [$subscriptionMock, $otherSubscriptionMock];
         $this->platformSubscriptionServiceMock->expects($this->exactly(2))
             ->method('saveSubscription')
-            ->withConsecutive(
-                [$subscriptionMock],
-                [$otherSubscriptionMock]
-            );
+            ->willReturnCallback(function ($subscription) use (&$savedSubscriptions) {
+                $this->assertSame(array_shift($savedSubscriptions), $subscription);
+            });
 
         $this->platformCustomerManagerMock->expects($this->atLeastOnce())
             ->method('getCustomerById')
@@ -926,12 +906,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    /**
-     * @expectedExceptionMessage An error occurred while updating subscription shipping address.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToUpdateShippingAddressIfHttpError()
     {
+        $this->expectExceptionMessage('An error occurred while updating subscription shipping address.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $billingAddressMock = $this->createBillingAddressMock();
@@ -954,12 +932,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->updateShippingAddress($customerId, $subscriptionId, $billingAddressMock);
     }
 
-    /**
-     * @expectedExceptionMessage The subscription is not found.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToUpdateShippingAddressIfNoCustomer()
     {
+        $this->expectExceptionMessage('The subscription is not found.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $billingAddressMock = $this->createBillingAddressMock();
@@ -983,12 +959,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->updateShippingAddress($customerId, $subscriptionId, $billingAddressMock);
     }
 
-    /**
-     * @expectedExceptionMessage Forbidden action.
-     * @expectedException \Magento\Framework\Exception\AuthorizationException
-     */
     public function testFailToUpdateShippingAddressIfNotAuthorized()
     {
+        $this->expectExceptionMessage('Forbidden action.');
+        $this->expectException(\Magento\Framework\Exception\AuthorizationException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $billingAddressMock = $this->createBillingAddressMock();
@@ -1060,12 +1034,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         );
     }
 
-    /**
-     * @expectedExceptionMessage An error occurred while skipping next delivery.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToSkipIfHttpError()
     {
+        $this->expectExceptionMessage('An error occurred while skipping next delivery.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
 
@@ -1086,12 +1058,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->skip($customerId, $subscriptionId);
     }
 
-    /**
-     * @expectedExceptionMessage The subscription is not found.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToSkipIfNoCustomer()
     {
+        $this->expectExceptionMessage('The subscription is not found.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $exception = new NoSuchEntityException(__('error'));
@@ -1113,12 +1083,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->skip($customerId, $subscriptionId);
     }
 
-    /**
-     * @expectedExceptionMessage Forbidden action.
-     * @expectedException \Magento\Framework\Exception\AuthorizationException
-     */
     public function testFailToSkipIfNotAuthorized()
     {
+        $this->expectExceptionMessage('Forbidden action.');
+        $this->expectException(\Magento\Framework\Exception\AuthorizationException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $platformCustomerId = 4321;
@@ -1175,12 +1143,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->assertEquals($nextOrderDate, $this->subscriptionManagement->skip($customerId, $subscriptionId));
     }
 
-    /**
-     * @expectedExceptionMessage The subscription cancellation is not allowed.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToCancelIfNotAllowedFromConfig()
     {
+        $this->expectExceptionMessage('The subscription cancellation is not allowed.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
 
@@ -1191,12 +1157,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->cancel($customerId, $subscriptionId);
     }
 
-    /**
-     * @expectedExceptionMessage An error occurred while canceling subscription.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToCancelIfHttpError()
     {
+        $this->expectExceptionMessage('An error occurred while canceling subscription.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
 
@@ -1221,12 +1185,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->cancel($customerId, $subscriptionId);
     }
 
-    /**
-     * @expectedExceptionMessage The subscription is not found.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToCancelIfNoCustomer()
     {
+        $this->expectExceptionMessage('The subscription is not found.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $exception = new NoSuchEntityException(__('error'));
@@ -1252,12 +1214,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->cancel($customerId, $subscriptionId);
     }
 
-    /**
-     * @expectedExceptionMessage Forbidden action.
-     * @expectedException \Magento\Framework\Exception\AuthorizationException
-     */
     public function testFailToCancelIfNotAuthorized()
     {
+        $this->expectExceptionMessage('Forbidden action.');
+        $this->expectException(\Magento\Framework\Exception\AuthorizationException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $platformCustomerId = 4321;
@@ -1320,12 +1280,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->assertTrue($this->subscriptionManagement->cancel($customerId, $subscriptionId));
     }
 
-    /**
-     * @expectedExceptionMessage An error occurred while pausing subscription.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToPauseIfHttpError()
     {
+        $this->expectExceptionMessage('An error occurred while pausing subscription.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
 
@@ -1346,12 +1304,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->pause($customerId, $subscriptionId);
     }
 
-    /**
-     * @expectedExceptionMessage The subscription is not found.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToPauseIfNoCustomer()
     {
+        $this->expectExceptionMessage('The subscription is not found.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $exception = new NoSuchEntityException(__('error'));
@@ -1373,12 +1329,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->pause($customerId, $subscriptionId);
     }
 
-    /**
-     * @expectedExceptionMessage Forbidden action.
-     * @expectedException \Magento\Framework\Exception\AuthorizationException
-     */
     public function testFailToPauseIfNotAuthorized()
     {
+        $this->expectExceptionMessage('Forbidden action.');
+        $this->expectException(\Magento\Framework\Exception\AuthorizationException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $platformCustomerId = 4321;
@@ -1433,12 +1387,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->assertTrue($this->subscriptionManagement->pause($customerId, $subscriptionId));
     }
 
-    /**
-     * @expectedExceptionMessage An error occurred while restarting subscription.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToRestartIfHttpError()
     {
+        $this->expectExceptionMessage('An error occurred while restarting subscription.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
 
@@ -1459,12 +1411,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->restart($customerId, $subscriptionId);
     }
 
-    /**
-     * @expectedExceptionMessage The subscription is not found.
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     */
     public function testFailToRestartIfNoCustomer()
     {
+        $this->expectExceptionMessage('The subscription is not found.');
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $exception = new NoSuchEntityException(__('error'));
@@ -1486,12 +1436,10 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionManagement->restart($customerId, $subscriptionId);
     }
 
-    /**
-     * @expectedExceptionMessage Forbidden action.
-     * @expectedException \Magento\Framework\Exception\AuthorizationException
-     */
     public function testFailToRestartIfNotAuthorized()
     {
+        $this->expectExceptionMessage('Forbidden action.');
+        $this->expectException(\Magento\Framework\Exception\AuthorizationException::class);
         $customerId = 1234;
         $subscriptionId = 555;
         $platformCustomerId = 4321;
@@ -1559,7 +1507,7 @@ class SubscriptionManagementTest extends \PHPUnit\Framework\TestCase
      */
     private function createSubscriptionMock()
     {
-        return $this->getMockBuilder(SubscriptionInterface::class)->getMock();
+        return $this->getMockBuilder(Subscription::class)->disableOriginalConstructor()->getMock();
     }
 
     /**

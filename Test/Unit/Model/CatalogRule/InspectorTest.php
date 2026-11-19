@@ -33,6 +33,7 @@ class InspectorTest extends \PHPUnit\Framework\TestCase
      * @param bool $isApplied
      * @dataProvider isAppliedDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('isAppliedDataProvider')]
     public function testIsApplied($productType, $isApplied)
     {
         $productMock = $this->getMockBuilder(Product::class)
@@ -59,7 +60,7 @@ class InspectorTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function isAppliedDataProvider()
+    public static function isAppliedDataProvider()
     {
         return [
             'applied' => ['productType' => 'product_type_1', 'isApplied' => true],

@@ -1,6 +1,6 @@
 <?php
 
-namespace Swarming\SubscribePro\Test\Unit\Gateway\Config;
+namespace Swarming\SubscribePro\Test\Unit\Gateway\Validator;
 
 use Magento\Payment\Gateway\Validator\ResultInterface;
 use Magento\Payment\Gateway\Validator\ResultInterfaceFactory;
@@ -29,7 +29,7 @@ class ResponseValidatorTest extends \PHPUnit\Framework\TestCase
     {
         $this->resultInterfaceFactoryMock = $this->getMockBuilder(ResultInterfaceFactory::class)
             ->disableOriginalConstructor()
-            ->setMethods(['create'])->getMock();
+            ->onlyMethods(['create'])->getMock();
         $this->subjectReaderMock = $this->getMockBuilder(SubjectReader::class)
             ->disableOriginalConstructor()->getMock();
 
@@ -45,6 +45,7 @@ class ResponseValidatorTest extends \PHPUnit\Framework\TestCase
      * @param bool $isValid
      * @dataProvider validateDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('validateDataProvider')]
     public function testValidate($validationSubject, $transactionState, $isValid)
     {
         $transactionMock = $this->getMockBuilder(TransactionInterface::class)->getMock();
@@ -59,7 +60,7 @@ class ResponseValidatorTest extends \PHPUnit\Framework\TestCase
 
         $this->resultInterfaceFactoryMock->expects($this->once())
             ->method('create')
-            ->with(['isValid' => $isValid, 'failsDescription' => []])
+            ->with(['isValid' => $isValid, 'failsDescription' => [], 'errorCodes' => []])
             ->willReturn($resultMock);
 
         $this->assertSame($resultMock, $this->responseValidator->validate($validationSubject));
@@ -68,7 +69,7 @@ class ResponseValidatorTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function validateDataProvider()
+    public static function validateDataProvider()
     {
         return [
             'Not valid' => [

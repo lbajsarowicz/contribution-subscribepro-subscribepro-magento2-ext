@@ -3,7 +3,6 @@
 namespace Swarming\SubscribePro\Test\Unit\Model\Quote\SubscriptionOption;
 
 use Magento\Catalog\Api\Data\ProductInterface;
-use Magento\Framework\TestFramework\Unit\Matcher\MethodInvokedAtIndex;
 use Magento\Quote\Api\Data\CartItemInterface;
 use Magento\Quote\Model\Quote\Item as QuoteItem;
 use Swarming\SubscribePro\Api\Data\ProductInterface as PlatformProductInterface;
@@ -40,6 +39,7 @@ class UpdaterTest extends \PHPUnit\Framework\TestCase
      * @param array $warnings
      * @dataProvider updateIfOneTimePurchaseOptionDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('updateIfOneTimePurchaseOptionDataProvider')]
     public function testUpdateIfOneTimePurchaseOption(
         $subscriptionOption,
         $subscriptionInterval,
@@ -55,18 +55,25 @@ class UpdaterTest extends \PHPUnit\Framework\TestCase
         $platformProductMock->expects($this->once())
             ->method('getIntervals')
             ->willReturn($productIntervals);
-        $platformProductMock->expects($this->any())
+        $platformProductMock
             ->method('getDefaultSubscriptionOption')
             ->willReturn($defaultSubscriptionOption);
 
         $quoteItemMock = $this->createQuoteItemMock();
 
-        $this->quoteItemHelperMock->expects($this->at(0))
+        $parameters = [];
+        $this->quoteItemHelperMock->expects($this->exactly(3))
             ->method('setSubscriptionParam')
-            ->with($quoteItemMock, SubscriptionOptionInterface::OPTION, PlatformProductInterface::SO_ONETIME_PURCHASE);
-        $this->quoteItemHelperMock->expects($this->at(1))
-            ->method('setSubscriptionParam')
-            ->with($quoteItemMock, SubscriptionOptionInterface::INTERVAL, null);
+            ->willReturnCallback(function ($item, $key, $value) use ($quoteItemMock, &$parameters) {
+                $this->assertSame($quoteItemMock, $item);
+                $parameters[$key] = $value;
+            });
+
+        $expectedParameters = [
+            SubscriptionOptionInterface::OPTION => PlatformProductInterface::SO_ONETIME_PURCHASE,
+            SubscriptionOptionInterface::CREATE_NEW_SUBSCRIPTION_AT_CHECKOUT => false,
+            SubscriptionOptionInterface::INTERVAL => null,
+        ];
 
         $this->assertEquals(
             $warnings,
@@ -77,12 +84,13 @@ class UpdaterTest extends \PHPUnit\Framework\TestCase
                 $subscriptionInterval
             )
         );
+        $this->assertSame($expectedParameters, $parameters);
     }
 
     /**
      * @return array
      */
-    public function updateIfOneTimePurchaseOptionDataProvider()
+    public static function updateIfOneTimePurchaseOptionDataProvider()
     {
         return [
             'Empty product intervals' => [
@@ -112,12 +120,10 @@ class UpdaterTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     * @expectedExceptionMessage The product is not configured properly, please contact customer support.
-     */
     public function testFailToUpdateIfSubscriptionOnlyAndEmptyIntervals()
     {
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
+        $this->expectExceptionMessage('The product is not configured properly, please contact customer support.');
         $subscriptionInterval = 'daily';
         $productIntervals = [];
         $subscriptionOption = 'any_option';
@@ -157,6 +163,7 @@ class UpdaterTest extends \PHPUnit\Framework\TestCase
      * @param array $warnings
      * @dataProvider updateIfSubscribeOptionAndInvalidQtyDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('updateIfSubscribeOptionAndInvalidQtyDataProvider')]
     public function testUpdateIfSubscribeOptionAndInvalidQty(
         $subscriptionOption,
         $subscriptionInterval,
@@ -175,20 +182,20 @@ class UpdaterTest extends \PHPUnit\Framework\TestCase
         $platformProductMock->expects($this->once())
             ->method('getSubscriptionOptionMode')
             ->willReturn($subscriptionOptionMode);
-        $platformProductMock->expects($this->any())
+        $platformProductMock
             ->method('getIntervals')
             ->willReturn($productIntervals);
-        $platformProductMock->expects($this->any())
+        $platformProductMock
             ->method('getDefaultSubscriptionOption')
             ->willReturn($defaultSubscriptionOption);
-        $platformProductMock->expects($this->any())->method('getMinQty')->willReturn($minQty);
-        $platformProductMock->expects($this->any())->method('getMaxQty')->willReturn($maxQty);
+        $platformProductMock->method('getMinQty')->willReturn($minQty);
+        $platformProductMock->method('getMaxQty')->willReturn($maxQty);
 
         $productMock = $this->createProductMock();
         $productMock->expects($this->once())->method('getName')->willReturn($productName);
 
         $quoteItemMock = $this->createQuoteItemMock();
-        $quoteItemMock->expects($this->any())->method('getQty')->willReturn($qty);
+        $quoteItemMock->method('getQty')->willReturn($qty);
         $quoteItemMock->expects($this->once())
             ->method('getOrigData')
             ->with(CartItemInterface::KEY_QTY)
@@ -196,12 +203,19 @@ class UpdaterTest extends \PHPUnit\Framework\TestCase
         $quoteItemMock->expects($this->once())->method('setQty')->with($finalQty);
         $quoteItemMock->expects($this->once())->method('getProduct')->willReturn($productMock);
 
-        $this->quoteItemHelperMock->expects($this->at(0))
+        $parameters = [];
+        $this->quoteItemHelperMock->expects($this->exactly(3))
             ->method('setSubscriptionParam')
-            ->with($quoteItemMock, SubscriptionOptionInterface::OPTION, PlatformProductInterface::SO_SUBSCRIPTION);
-        $this->quoteItemHelperMock->expects($this->at(1))
-            ->method('setSubscriptionParam')
-            ->with($quoteItemMock, SubscriptionOptionInterface::INTERVAL, $subscriptionInterval);
+            ->willReturnCallback(function ($item, $key, $value) use ($quoteItemMock, &$parameters) {
+                $this->assertSame($quoteItemMock, $item);
+                $parameters[$key] = $value;
+            });
+
+        $expectedParameters = [
+            SubscriptionOptionInterface::OPTION => PlatformProductInterface::SO_SUBSCRIPTION,
+            SubscriptionOptionInterface::CREATE_NEW_SUBSCRIPTION_AT_CHECKOUT => true,
+            SubscriptionOptionInterface::INTERVAL => $subscriptionInterval,
+        ];
 
         $this->assertEquals(
             $warnings,
@@ -212,12 +226,13 @@ class UpdaterTest extends \PHPUnit\Framework\TestCase
                 $subscriptionInterval
             )
         );
+        $this->assertSame($expectedParameters, $parameters);
     }
 
     /**
      * @return array
      */
-    public function updateIfSubscribeOptionAndInvalidQtyDataProvider()
+    public static function updateIfSubscribeOptionAndInvalidQtyDataProvider()
     {
         return [
             'Subscription only mode:qty less than min qty:revert qty' => [
@@ -301,6 +316,7 @@ class UpdaterTest extends \PHPUnit\Framework\TestCase
      * @param array $warnings
      * @dataProvider updateIfSubscribeOptionAndValidQtyDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('updateIfSubscribeOptionAndValidQtyDataProvider')]
     public function testUpdateIfSubscribeOptionAndValidQty(
         $subscriptionOption,
         $subscriptionInterval,
@@ -318,29 +334,36 @@ class UpdaterTest extends \PHPUnit\Framework\TestCase
         $platformProductMock->expects($this->once())
             ->method('getSubscriptionOptionMode')
             ->willReturn($subscriptionOptionMode);
-        $platformProductMock->expects($this->any())
+        $platformProductMock
             ->method('getIntervals')
             ->willReturn($productIntervals);
-        $platformProductMock->expects($this->any())
+        $platformProductMock
             ->method('getDefaultInterval')
             ->willReturn($defaultInterval);
-        $platformProductMock->expects($this->any())->method('getMinQty')->willReturn($minQty);
-        $platformProductMock->expects($this->any())->method('getMaxQty')->willReturn($maxQty);
+        $platformProductMock->method('getMinQty')->willReturn($minQty);
+        $platformProductMock->method('getMaxQty')->willReturn($maxQty);
 
         $quoteItemMock = $this->createQuoteItemMock();
-        $quoteItemMock->expects($this->any())->method('getQty')->willReturn($qty);
+        $quoteItemMock->method('getQty')->willReturn($qty);
         $quoteItemMock->expects($this->never())->method('setQty');
 
-        $this->quoteItemHelperMock->expects($this->any())
+        $this->quoteItemHelperMock
             ->method('getSubscriptionInterval')
             ->with($quoteItemMock)
             ->willReturn($intervalFromQuoteItem);
-        $this->quoteItemHelperMock->expects(new MethodInvokedAtIndex(0))
+        $parameters = [];
+        $this->quoteItemHelperMock->expects($this->exactly(3))
             ->method('setSubscriptionParam')
-            ->with($quoteItemMock, SubscriptionOptionInterface::OPTION, PlatformProductInterface::SO_SUBSCRIPTION);
-        $this->quoteItemHelperMock->expects(new MethodInvokedAtIndex(1))
-            ->method('setSubscriptionParam')
-            ->with($quoteItemMock, SubscriptionOptionInterface::INTERVAL, $finalInterval);
+            ->willReturnCallback(function ($item, $key, $value) use ($quoteItemMock, &$parameters) {
+                $this->assertSame($quoteItemMock, $item);
+                $parameters[$key] = $value;
+            });
+
+        $expectedParameters = [
+            SubscriptionOptionInterface::OPTION => PlatformProductInterface::SO_SUBSCRIPTION,
+            SubscriptionOptionInterface::CREATE_NEW_SUBSCRIPTION_AT_CHECKOUT => true,
+            SubscriptionOptionInterface::INTERVAL => $finalInterval,
+        ];
 
         $this->assertEquals(
             $warnings,
@@ -351,12 +374,13 @@ class UpdaterTest extends \PHPUnit\Framework\TestCase
                 $subscriptionInterval
             )
         );
+        $this->assertSame($expectedParameters, $parameters);
     }
 
     /**
      * @return array
      */
-    public function updateIfSubscribeOptionAndValidQtyDataProvider()
+    public static function updateIfSubscribeOptionAndValidQtyDataProvider()
     {
         return [
             'Subscription only mode:no default intervals: set first from product intervals' => [

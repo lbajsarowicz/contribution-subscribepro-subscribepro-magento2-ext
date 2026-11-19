@@ -2,7 +2,7 @@
 
 namespace Swarming\SubscribePro\Test\Unit\Model\CatalogRule\Inspector;
 
-use Magento\Catalog\Model\Product\Configuration\Item\Option as ProductConfigurationOption;
+use Swarming\SubscribePro\Test\Unit\Catalog\ConfigurationOption as ProductConfigurationOption;
 use Swarming\SubscribePro\Model\CatalogRule\Inspector\BundleProduct;
 
 class BundleProductTest extends AbstractInspector
@@ -48,6 +48,7 @@ class BundleProductTest extends AbstractInspector
      * @param string $dateString
      * @dataProvider isAppliedDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('isAppliedDataProvider')]
     public function testIsApplied(
         $isApplied,
         $rulePrice,
@@ -64,7 +65,7 @@ class BundleProductTest extends AbstractInspector
         $this->prepareStoreMock($storeId, $websiteId);
 
         $product = $this->prepareProductMock($price, $productId, $customerGroupId, $storeId);
-        $product->expects($this->any())
+        $product
             ->method('getCustomOption')
             ->with('bundle_selection_ids')
             ->willReturn(false);
@@ -82,7 +83,7 @@ class BundleProductTest extends AbstractInspector
     /**
      * @return array
      */
-    public function isAppliedDataProvider()
+    public static function isAppliedDataProvider()
     {
         return [
             'applied' => [
@@ -137,6 +138,7 @@ class BundleProductTest extends AbstractInspector
      * @internal param $ [] $productId
      * @dataProvider isAppliedWithChildProductsDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('isAppliedWithChildProductsDataProvider')]
     public function testIsAppliedWithChildProducts(
         $isApplied,
         $parentProductId,
@@ -161,7 +163,7 @@ class BundleProductTest extends AbstractInspector
 
         $option = $this->getMockBuilder(ProductConfigurationOption::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getValue'])
+            ->onlyMethods(['getValue'])
             ->getMock();
         $option->expects($this->atLeastOnce())
             ->method('getValue')
@@ -192,7 +194,7 @@ class BundleProductTest extends AbstractInspector
         foreach ($productIds as $key => $productId) {
             $getRulePriceMap[] = ["{$dateString}|{$websiteId}|{$customerGroupId}|{$productId}", $rulePrices[$key]];
         }
-        $this->rulePricesStorage->expects($this->any())
+        $this->rulePricesStorage
             ->method('getRulePrice')
             ->willReturnMap($getRulePriceMap);
 
@@ -202,7 +204,7 @@ class BundleProductTest extends AbstractInspector
     /**
      * @return array
      */
-    public function isAppliedWithChildProductsDataProvider()
+    public static function isAppliedWithChildProductsDataProvider()
     {
         return [
             'applied' => [
@@ -264,7 +266,7 @@ class BundleProductTest extends AbstractInspector
 
         $option = $this->getMockBuilder(ProductConfigurationOption::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getValue'])
+            ->onlyMethods(['getValue'])
             ->getMock();
         $option->expects($this->atLeastOnce())
             ->method('getValue')
@@ -290,7 +292,7 @@ class BundleProductTest extends AbstractInspector
     {
         return $this->getMockBuilder(ProductConfigurationOption::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getProduct'])
+            ->onlyMethods(['getProduct'])
             ->getMock();
     }
 }

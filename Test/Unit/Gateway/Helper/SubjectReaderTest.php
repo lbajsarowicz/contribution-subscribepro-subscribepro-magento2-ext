@@ -18,20 +18,21 @@ class SubjectReaderTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage Response object does not exist
      * @param array $subject
      * @dataProvider failToReadNotObjectTransactionDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('failToReadNotObjectTransactionDataProvider')]
     public function testFailToReadNotObjectTransaction($subject)
     {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Response object does not exist');
         $this->subjectReader->readTransaction($subject);
     }
 
     /**
      * @return array
      */
-    public function failToReadNotObjectTransactionDataProvider()
+    public static function failToReadNotObjectTransactionDataProvider()
     {
         return [
             'Transaction is not set' => [
@@ -43,19 +44,17 @@ class SubjectReaderTest extends \PHPUnit\Framework\TestCase
         ];
     }
 
-    /**
-     * @expectedException \InvalidArgumentException
-     * @expectedExceptionMessage The object is not a class \SubscribePro\Service\Transaction\TransactionInterface.
-     */
     public function testFailToReadNotTransactionInterfaceInstance()
     {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('The object is not a class \\SubscribePro\\Service\\Transaction\\TransactionInterface.');
         $subject = ['transaction' => new \stdClass()];
         $this->subjectReader->readTransaction($subject);
     }
 
     public function testReadTransaction()
     {
-        $transactionMock = $this->getMockBuilder(TransactionInterface::class)->getMock();
+        $transactionMock = $this->createStub(TransactionInterface::class);
         $subject = ['transaction' => $transactionMock];
 
         $this->assertSame($transactionMock, $this->subjectReader->readTransaction($subject));

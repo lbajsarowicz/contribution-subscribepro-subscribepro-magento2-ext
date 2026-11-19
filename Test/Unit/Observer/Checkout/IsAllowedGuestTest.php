@@ -62,14 +62,12 @@ class IsAllowedGuestTest extends \PHPUnit\Framework\TestCase
             ->willReturn($storeMock);
 
         $observerMock = $this->createObserverMock();
-        $observerMock->expects($this->at(0))
+        $observerMock->expects($this->exactly(2))
             ->method('getData')
-            ->with('result')
-            ->willReturn($resultMock);
-        $observerMock->expects($this->at(1))
-            ->method('getData')
-            ->with('quote')
-            ->willReturn($quoteMock);
+            ->willReturnMap([
+                ['result', null, $resultMock],
+                ['quote', null, $quoteMock],
+            ]);
 
         $this->generalConfigMock->expects($this->once())
             ->method('isEnabled')
@@ -86,7 +84,7 @@ class IsAllowedGuestTest extends \PHPUnit\Framework\TestCase
         $websiteCode = 'code';
 
         $resultMock = $this->createResultMock();
-        $resultMock->expects($this->never())->method('setIsAllowed');
+        $resultMock->expects($this->never())->method('setData');
 
         $websiteMock = $this->createWebsiteMock();
         $websiteMock->expects($this->once())
@@ -104,14 +102,12 @@ class IsAllowedGuestTest extends \PHPUnit\Framework\TestCase
             ->willReturn($storeMock);
 
         $observerMock = $this->createObserverMock();
-        $observerMock->expects($this->at(0))
+        $observerMock->expects($this->exactly(2))
             ->method('getData')
-            ->with('result')
-            ->willReturn($resultMock);
-        $observerMock->expects($this->at(1))
-            ->method('getData')
-            ->with('quote')
-            ->willReturn($quoteMock);
+            ->willReturnMap([
+                ['result', null, $resultMock],
+                ['quote', null, $quoteMock],
+            ]);
 
         $this->generalConfigMock->expects($this->once())
             ->method('isEnabled')
@@ -131,7 +127,7 @@ class IsAllowedGuestTest extends \PHPUnit\Framework\TestCase
         $websiteCode = 'code';
 
         $resultMock = $this->createResultMock();
-        $resultMock->expects($this->once())->method('setIsAllowed')->with(false);
+        $resultMock->expects($this->once())->method('setData')->with('is_allowed', false);
 
         $websiteMock = $this->createWebsiteMock();
         $websiteMock->expects($this->once())
@@ -149,14 +145,12 @@ class IsAllowedGuestTest extends \PHPUnit\Framework\TestCase
             ->willReturn($storeMock);
 
         $observerMock = $this->createObserverMock();
-        $observerMock->expects($this->at(0))
+        $observerMock->expects($this->exactly(2))
             ->method('getData')
-            ->with('result')
-            ->willReturn($resultMock);
-        $observerMock->expects($this->at(1))
-            ->method('getData')
-            ->with('quote')
-            ->willReturn($quoteMock);
+            ->willReturnMap([
+                ['result', null, $resultMock],
+                ['quote', null, $quoteMock],
+            ]);
 
         $this->generalConfigMock->expects($this->once())
             ->method('isEnabled')
@@ -186,7 +180,6 @@ class IsAllowedGuestTest extends \PHPUnit\Framework\TestCase
     {
         return $this->getMockBuilder(DataObject::class)
             ->disableOriginalConstructor()
-            ->setMethods(['setIsAllowed'])
             ->getMock();
     }
 

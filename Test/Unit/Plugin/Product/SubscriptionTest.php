@@ -55,6 +55,7 @@ class SubscriptionTest extends \PHPUnit\Framework\TestCase
      * @param bool $result
      * @dataProvider afterHasOptionsDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('afterHasOptionsDataProvider')]
     public function testAfterHasOptions($isSubscriptionEnabled, $isProductSubscriptionEnabled, $result)
     {
         $hasOptions = false;
@@ -81,7 +82,7 @@ class SubscriptionTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function afterHasOptionsDataProvider()
+    public static function afterHasOptionsDataProvider()
     {
         return [
             'Subscribe pro not enabled' => [

@@ -29,12 +29,10 @@ class CaptureDataBuilderTest extends \PHPUnit\Framework\TestCase
         $this->captureDataBuilder = new CaptureDataBuilder($this->subjectReaderMock);
     }
 
-    /**
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     * @expectedExceptionMessage Parent transaction is not found.
-     */
     public function testFailToBuildWithoutParentTransaction()
     {
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
+        $this->expectExceptionMessage('Parent transaction is not found.');
         $subject = ['subject'];
 
         $orderMock = $this->getMockBuilder(OrderAdapterInterface::class)

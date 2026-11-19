@@ -6,7 +6,7 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\Json as ResultJson;
 use Magento\Framework\Controller\ResultFactory;
-use SubscribePro\Sdk;
+use Swarming\SubscribePro\Test\Unit\Platform\Sdk;
 use SubscribePro\Service\Webhook\WebhookService;
 use Swarming\SubscribePro\Controller\Adminhtml\Config\TestConnection;
 use Swarming\SubscribePro\Model\Config\Platform as PlatformConfig;
@@ -52,7 +52,7 @@ class TestConnectionTest extends \PHPUnit\Framework\TestCase
             ->disableOriginalConstructor()->getMock();
         $this->sdkFactoryMock = $this->getMockBuilder(SdkFactory::class)
             ->disableOriginalConstructor()
-            ->setMethods(['create'])
+            ->onlyMethods(['create'])
             ->getMock();
 
         $this->testConnectionController = new TestConnection(
@@ -70,15 +70,19 @@ class TestConnectionTest extends \PHPUnit\Framework\TestCase
      * @param array $response
      * @dataProvider executeIfNotValidClientParamsDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('executeIfNotValidClientParamsDataProvider')]
     public function testExecuteIfNotValidClientParams($clientId, $clientSecret, $baseUrl, $website, $response)
     {
         $resultMock = $this->createResultMock();
         $resultMock->expects($this->once())->method('setData')->with($response);
 
-        $this->requestMock->expects($this->at(0))->method('getParam')->with('base_url')->willReturn($baseUrl);
-        $this->requestMock->expects($this->at(1))->method('getParam')->with('client_id')->willReturn($clientId);
-        $this->requestMock->expects($this->at(2))->method('getParam')->with('client_secret')->willReturn($clientSecret);
-        $this->requestMock->expects($this->at(3))->method('getParam')->with('website')->willReturn($website);
+        $this->requestMock->expects($this->exactly(4))->method('getParam')
+            ->willReturnMap([
+                ['base_url', null, $baseUrl],
+                ['client_id', null, $clientId],
+                ['client_secret', null, $clientSecret],
+                ['website', null, $website]
+            ]);
 
         $this->resultFactoryMock->expects($this->once())
             ->method('create')
@@ -93,7 +97,7 @@ class TestConnectionTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function executeIfNotValidClientParamsDataProvider()
+    public static function executeIfNotValidClientParamsDataProvider()
     {
         return [
             'No client ID:no client secret' => [
@@ -139,6 +143,7 @@ class TestConnectionTest extends \PHPUnit\Framework\TestCase
      * @param array $response
      * @dataProvider executeIfNotEncryptedClientSecretDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('executeIfNotEncryptedClientSecretDataProvider')]
     public function testExecuteIfNotEncryptedClientSecret(
         $clientId,
         $clientSecret,
@@ -157,10 +162,13 @@ class TestConnectionTest extends \PHPUnit\Framework\TestCase
         $resultMock = $this->createResultMock();
         $resultMock->expects($this->once())->method('setData')->with($response);
 
-        $this->requestMock->expects($this->at(0))->method('getParam')->with('base_url')->willReturn($baseUrl);
-        $this->requestMock->expects($this->at(1))->method('getParam')->with('client_id')->willReturn($clientId);
-        $this->requestMock->expects($this->at(2))->method('getParam')->with('client_secret')->willReturn($clientSecret);
-        $this->requestMock->expects($this->at(3))->method('getParam')->with('website')->willReturn($website);
+        $this->requestMock->expects($this->exactly(4))->method('getParam')
+            ->willReturnMap([
+                ['base_url', null, $baseUrl],
+                ['client_id', null, $clientId],
+                ['client_secret', null, $clientSecret],
+                ['website', null, $website]
+            ]);
 
         $this->platformConfigMock->expects($this->never())->method('getClientSecret');
 
@@ -177,7 +185,7 @@ class TestConnectionTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function executeIfNotEncryptedClientSecretDataProvider()
+    public static function executeIfNotEncryptedClientSecretDataProvider()
     {
         return [
             'Ping failed' => [
@@ -230,6 +238,7 @@ class TestConnectionTest extends \PHPUnit\Framework\TestCase
      * @param array $response
      * @dataProvider executeIfEncryptedClientSecretDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('executeIfEncryptedClientSecretDataProvider')]
     public function testExecuteIfEncryptedClientSecret(
         $clientId,
         $clientSecret,
@@ -249,10 +258,13 @@ class TestConnectionTest extends \PHPUnit\Framework\TestCase
         $resultMock = $this->createResultMock();
         $resultMock->expects($this->once())->method('setData')->with($response);
 
-        $this->requestMock->expects($this->at(0))->method('getParam')->with('base_url')->willReturn($baseUrl);
-        $this->requestMock->expects($this->at(1))->method('getParam')->with('client_id')->willReturn($clientId);
-        $this->requestMock->expects($this->at(2))->method('getParam')->with('client_secret')->willReturn('******');
-        $this->requestMock->expects($this->at(3))->method('getParam')->with('website')->willReturn($website);
+        $this->requestMock->expects($this->exactly(4))->method('getParam')
+            ->willReturnMap([
+                ['base_url', null, $baseUrl],
+                ['client_id', null, $clientId],
+                ['client_secret', null, '******'],
+                ['website', null, $website]
+            ]);
 
         $this->platformConfigMock->expects($this->once())
             ->method('getClientSecret')
@@ -272,7 +284,7 @@ class TestConnectionTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function executeIfEncryptedClientSecretDataProvider()
+    public static function executeIfEncryptedClientSecretDataProvider()
     {
         return [
             'Empty website code:ping successful' => [
@@ -350,7 +362,7 @@ class TestConnectionTest extends \PHPUnit\Framework\TestCase
     {
         return $this->getMockBuilder(Sdk::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getWebhookService'])
+            ->onlyMethods(['getWebhookService'])
             ->getMock();
     }
 

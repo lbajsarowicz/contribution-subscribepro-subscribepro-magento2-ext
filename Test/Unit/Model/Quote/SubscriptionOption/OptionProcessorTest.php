@@ -4,9 +4,7 @@ namespace Swarming\SubscribePro\Test\Unit\Model\Quote\SubscriptionOption;
 
 use Magento\Framework\DataObject;
 use Magento\Framework\DataObject\Factory as DataObjectFactory;
-use Magento\Quote\Api\Data\CartItemInterface;
 use Magento\Quote\Api\Data\ProductOptionExtensionFactory;
-use Magento\Quote\Api\Data\ProductOptionExtensionInterface;
 use Magento\Quote\Api\Data\ProductOptionInterface;
 use Magento\Quote\Model\Quote\ProductOptionFactory;
 use Swarming\SubscribePro\Api\Data\SubscriptionOptionInterface;
@@ -46,15 +44,15 @@ class OptionProcessorTest extends \PHPUnit\Framework\TestCase
             ->disableOriginalConstructor()->getMock();
         $this->productOptionFactoryMock = $this->getMockBuilder(ProductOptionFactory::class)
             ->disableOriginalConstructor()
-            ->setMethods(['create'])
+            ->onlyMethods(['create'])
             ->getMock();
         $this->extensionFactoryMock = $this->getMockBuilder(ProductOptionExtensionFactory::class)
             ->disableOriginalConstructor()
-            ->setMethods(['create'])
+            ->onlyMethods(['create'])
             ->getMock();
         $this->subscriptionOptionFactoryMock = $this->getMockBuilder(SubscriptionOptionInterfaceFactory::class)
             ->disableOriginalConstructor()
-            ->setMethods(['create'])
+            ->onlyMethods(['create'])
             ->getMock();
 
         $this->optionProcessor = new OptionProcessor(
@@ -112,11 +110,12 @@ class OptionProcessorTest extends \PHPUnit\Framework\TestCase
      * @param array $subscriptionOptions
      * @dataProvider convertToBuyRequestIfEmptySubscriptionOptionsDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('convertToBuyRequestIfEmptySubscriptionOptionsDataProvider')]
     public function testConvertToBuyRequestIfEmptySubscriptionOptions($subscriptionOptions)
     {
         $subscriptionOptionMock = $this->createSubscriptionOptionMock();
         $subscriptionOptionMock->expects($this->once())
-            ->method('__toArray')
+            ->method('toArray')
             ->willReturn($subscriptionOptions);
 
         $extensionAttributesMock = $this->createExtensionAttributesMock();
@@ -140,7 +139,7 @@ class OptionProcessorTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function convertToBuyRequestIfEmptySubscriptionOptionsDataProvider()
+    public static function convertToBuyRequestIfEmptySubscriptionOptionsDataProvider()
     {
         return [
             'Empty subscription options' => [
@@ -150,7 +149,7 @@ class OptionProcessorTest extends \PHPUnit\Framework\TestCase
                 'subscriptionOptions' => 'string',
             ],
             'Subscription options empty array' => [
-                'subscriptionOptions' => 'string',
+                'subscriptionOptions' => [],
             ],
         ];
     }
@@ -162,7 +161,7 @@ class OptionProcessorTest extends \PHPUnit\Framework\TestCase
         $subscriptionOptions = ['array'];
         $subscriptionOptionMock = $this->createSubscriptionOptionMock();
         $subscriptionOptionMock->expects($this->once())
-            ->method('__toArray')
+            ->method('toArray')
             ->willReturn($subscriptionOptions);
 
         $extensionAttributesMock = $this->createExtensionAttributesMock();
@@ -202,6 +201,7 @@ class OptionProcessorTest extends \PHPUnit\Framework\TestCase
      * @param string $buyRequestValue
      * @dataProvider processOptionsIfNoSubscriptionOptionsDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('processOptionsIfNoSubscriptionOptionsDataProvider')]
     public function testProcessOptionsIfNoSubscriptionOptions($buyRequestValue)
     {
         $buyRequestMock = $this->createBuyRequestMock();
@@ -220,7 +220,7 @@ class OptionProcessorTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function processOptionsIfNoSubscriptionOptionsDataProvider()
+    public static function processOptionsIfNoSubscriptionOptionsDataProvider()
     {
         return [
             'BuyRequest value not array' => [
@@ -393,9 +393,9 @@ class OptionProcessorTest extends \PHPUnit\Framework\TestCase
      */
     private function createCartItemMock()
     {
-        return $this->getMockBuilder(CartItemInterface::class)
-            ->setMethods(['getOptionByCode', 'getProductOption', 'setProductOption'])
-            ->getMockForAbstractClass();
+        return $this->getMockBuilder(\Magento\Quote\Model\Quote\Item::class)
+            ->disableOriginalConstructor()
+            ->getMock();
     }
 
     /**
@@ -419,8 +419,8 @@ class OptionProcessorTest extends \PHPUnit\Framework\TestCase
      */
     private function createBuyRequestMock()
     {
-        return $this->getMockBuilder(DataObject::class)
-            ->setMethods(['getValue'])
+        return $this->getMockBuilder(\Magento\Quote\Model\Quote\Item\Option::class)
+            ->disableOriginalConstructor()
             ->getMock();
     }
 
@@ -429,9 +429,7 @@ class OptionProcessorTest extends \PHPUnit\Framework\TestCase
      */
     private function createExtensionAttributesMock()
     {
-        return $this->getMockBuilder(ProductOptionExtensionInterface::class)
-            ->setMethods(['getSubscriptionOption', 'setSubscriptionOption'])
-            ->getMockForAbstractClass();
+        return $this->getMockBuilder(SubscriptionOptionExtensionAttributes::class)->getMock();
     }
 
     /**
@@ -439,8 +437,6 @@ class OptionProcessorTest extends \PHPUnit\Framework\TestCase
      */
     private function createSubscriptionOptionMock()
     {
-        return $this->getMockBuilder(SubscriptionOptionInterface::class)
-            ->setMethods(['__toArray'])
-            ->getMockForAbstractClass();
+        return $this->getMockBuilder(SubscriptionOptionInterface::class)->getMock();
     }
 }

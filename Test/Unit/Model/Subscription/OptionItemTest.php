@@ -1,9 +1,7 @@
 <?php
 
-namespace Swarming\SubscribePro\Test\Unit\Plugin\Product;
+namespace Swarming\SubscribePro\Test\Unit\Model\Subscription;
 
-use Magento\Catalog\Api\Data\ProductInterface;
-use Magento\Catalog\Model\Product\Configuration\Item\Option\OptionInterface;
 use Swarming\SubscribePro\Model\Subscription\OptionItem;
 
 class OptionItemTest extends \PHPUnit\Framework\TestCase
@@ -29,20 +27,20 @@ class OptionItemTest extends \PHPUnit\Framework\TestCase
             ->method('setData')
             ->with(OptionItem::ITEM, $this->subscriptionOptionItem);
         $newOptionMock->expects($this->once())->method('addData')->with($existingOptionData);
-        $newOptionMock->expects($this->any())->method('getCode')->willReturn($code1);
+        $newOptionMock->method('getCode')->willReturn($code1);
 
         $existingOptionMock = $this->createOptionMock();
         $existingOptionMock->expects($this->once())
             ->method('setData')
             ->with(OptionItem::ITEM, $this->subscriptionOptionItem);
         $existingOptionMock->expects($this->once())->method('getData')->willReturn($existingOptionData);
-        $existingOptionMock->expects($this->any())->method('getCode')->willReturn($code1);
+        $existingOptionMock->method('getCode')->willReturn($code1);
 
         $option2Mock = $this->createOptionMock();
         $option2Mock->expects($this->once())
             ->method('setData')
             ->with(OptionItem::ITEM, $this->subscriptionOptionItem);
-        $option2Mock->expects($this->any())->method('getCode')->willReturn($code2);
+        $option2Mock->method('getCode')->willReturn($code2);
 
         $result = [$newOptionMock, $option2Mock];
 
@@ -64,7 +62,7 @@ class OptionItemTest extends \PHPUnit\Framework\TestCase
         $optionMock->expects($this->once())
             ->method('setData')
             ->with(OptionItem::ITEM, $this->subscriptionOptionItem);
-        $optionMock->expects($this->any())->method('getCode')->willReturn($code);
+        $optionMock->method('getCode')->willReturn($code);
 
         $this->assertNull($this->subscriptionOptionItem->getOptionByCode($code));
 
@@ -86,13 +84,13 @@ class OptionItemTest extends \PHPUnit\Framework\TestCase
         $option1Mock->expects($this->once())
             ->method('setData')
             ->with(OptionItem::ITEM, $this->subscriptionOptionItem);
-        $option1Mock->expects($this->any())->method('getCode')->willReturn($code1);
+        $option1Mock->method('getCode')->willReturn($code1);
 
         $option2Mock = $this->createOptionMock();
-        $option1Mock->expects($this->once())
+        $option2Mock->expects($this->once())
             ->method('setData')
             ->with(OptionItem::ITEM, $this->subscriptionOptionItem);
-        $option2Mock->expects($this->any())->method('getCode')->willReturn($code2);
+        $option2Mock->method('getCode')->willReturn($code2);
 
         $this->subscriptionOptionItem->setOptions([$option1Mock, $option2Mock]);
 
@@ -115,7 +113,7 @@ class OptionItemTest extends \PHPUnit\Framework\TestCase
         $optionMock->expects($this->once())
             ->method('setData')
             ->with(OptionItem::ITEM, $this->subscriptionOptionItem);
-        $optionMock->expects($this->any())->method('getCode')->willReturn($code);
+        $optionMock->method('getCode')->willReturn($code);
 
         $optionsByCode = [$code => $optionMock];
 
@@ -134,9 +132,9 @@ class OptionItemTest extends \PHPUnit\Framework\TestCase
      */
     private function createProductMock()
     {
-        return $this->getMockBuilder(ProductInterface::class)
-            ->setMethods(['setFinalPrice', 'setCustomOptions'])
-            ->getMockForAbstractClass();
+        return $this->getMockBuilder(\Magento\Catalog\Model\Product::class)
+            ->disableOriginalConstructor()
+            ->getMock();
     }
 
     /**
@@ -144,8 +142,8 @@ class OptionItemTest extends \PHPUnit\Framework\TestCase
      */
     private function createOptionMock()
     {
-        return $this->getMockBuilder(OptionInterface::class)
-            ->setMethods(['getCode', 'setData', 'getData', 'addData'])
-            ->getMockForAbstractClass();
+        return $this->getMockBuilder(\Swarming\SubscribePro\Test\Unit\QuoteItemOption::class)
+            ->disableOriginalConstructor()
+            ->getMock();
     }
 }

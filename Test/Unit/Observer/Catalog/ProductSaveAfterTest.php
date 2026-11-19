@@ -363,12 +363,10 @@ class ProductSaveAfterTest extends \PHPUnit\Framework\TestCase
         $this->productSaveAfter->execute($observerMock);
     }
 
-    /**
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     * @expectedExceptionMessage Fail to save product on Subscribe Pro platform for website "website name".
-     */
     public function testExecuteIfFailToSaveProduct()
     {
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
+        $this->expectExceptionMessage('Fail to save product on Subscribe Pro platform for website "website name".');
         $exception = new \SubscribePro\Exception\HttpException(new Response(404));
 
         $store1Id = 567;
@@ -562,24 +560,23 @@ class ProductSaveAfterTest extends \PHPUnit\Framework\TestCase
                 $website1Id => $website1Mock,
                 $website2Id => $website2Mock
             ]);
-        $this->storeManagerMock->expects($this->at(2))
+        $groupCalls = [[$group1Id, $group1Mock], [$group2Id, $group2Mock]];
+        $this->storeManagerMock->expects($this->exactly(2))
             ->method('getGroup')
-            ->with($group1Id)
-            ->willReturn($group1Mock);
-        $this->storeManagerMock->expects($this->at(3))
-            ->method('getGroup')
-            ->with($group2Id)
-            ->willReturn($group2Mock);
+            ->willReturnCallback(function ($groupId) use (&$groupCalls) {
+                [$expectedGroupId, $group] = array_shift($groupCalls);
+                $this->assertEquals($expectedGroupId, $groupId);
+                return $group;
+            });
         $this->storeManagerMock->expects($this->once())->method('getStore')->willReturn($storeMock);
 
-        $this->generalConfigMock->expects($this->at(0))
+        $isEnabledCalls = [$website1Code, $website2Code];
+        $this->generalConfigMock->expects($this->exactly(2))
             ->method('isEnabled')
-            ->with($website1Code)
-            ->willReturn(true);
-        $this->generalConfigMock->expects($this->at(1))
-            ->method('isEnabled')
-            ->with($website2Code)
-            ->willReturn(true);
+            ->willReturnCallback(function ($websiteCode) use (&$isEnabledCalls) {
+                $this->assertEquals(array_shift($isEnabledCalls), $websiteCode);
+                return true;
+            });
 
         $this->productRepositoryMock->expects($this->exactly(2))
             ->method('get')
@@ -592,12 +589,14 @@ class ProductSaveAfterTest extends \PHPUnit\Framework\TestCase
             ->method('isSubscriptionEnabled')
             ->willReturnMap([[$product1Mock, true], [$product2Mock, true]]);
 
-        $this->platformProductManagerMock->expects($this->at(0))
+        $saveProductCalls = [[$product1Mock, $website1Id], [$product2Mock, $website2Id]];
+        $this->platformProductManagerMock->expects($this->exactly(2))
             ->method('saveProduct')
-            ->with($product1Mock, $website1Id);
-        $this->platformProductManagerMock->expects($this->at(1))
-            ->method('saveProduct')
-            ->with($product2Mock, $website2Id);
+            ->willReturnCallback(function ($product, $websiteId) use (&$saveProductCalls) {
+                [$expectedProduct, $expectedWebsiteId] = array_shift($saveProductCalls);
+                $this->assertSame($expectedProduct, $product);
+                $this->assertEquals($expectedWebsiteId, $websiteId);
+            });
 
         $this->productSaveAfter->execute($observerMock);
     }

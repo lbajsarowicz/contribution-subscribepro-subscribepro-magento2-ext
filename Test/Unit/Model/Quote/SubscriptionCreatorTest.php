@@ -2,621 +2,165 @@
 
 namespace Swarming\SubscribePro\Test\Unit\Model\Quote;
 
-use Magento\Quote\Model\Quote;
-use Magento\Quote\Model\Quote\Address as QuoteAddress;
-use Magento\Quote\Model\Quote\Item as QuoteItem;
+use Magento\Quote\Model\Quote\Address;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\Data\OrderPaymentInterface;
-use Magento\Vault\Api\Data\PaymentTokenInterface;
 use Magento\Vault\Api\PaymentTokenManagementInterface;
-use SubscribePro\Service\Customer\CustomerInterface as PlatformCustomerInterface;
-use Swarming\SubscribePro\Helper\OrderItem as OrderItemHelper;
-use Swarming\SubscribePro\Helper\QuoteItem as QuoteItemHelper;
-use Swarming\SubscribePro\Model\Quote\QuoteItem\SubscriptionCreator as QuoteItemSubscriptionCreator;
+use SubscribePro\Service\Customer\CustomerInterface;
+use Swarming\SubscribePro\Helper\OrderItem;
+use Swarming\SubscribePro\Helper\QuoteItem;
+use Swarming\SubscribePro\Model\Quote\Payment\GetPaymentProfileId;
+use Swarming\SubscribePro\Model\Quote\QuoteItem\SubscriptionCreator as ItemSubscriptionCreator;
 use Swarming\SubscribePro\Model\Quote\SubscriptionCreator;
-use Swarming\SubscribePro\Platform\Manager\Customer as CustomerManager;
+use Swarming\SubscribePro\Platform\Manager\Customer;
+use Swarming\SubscribePro\Platform\Service\Subscription;
 
 class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
 {
-    /**
-     * @var \Swarming\SubscribePro\Model\Quote\SubscriptionCreator
-     */
-    protected $subscriptionCreator;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Swarming\SubscribePro\Model\Quote\QuoteItem\SubscriptionCreator
-     */
-    protected $quoteItemSubscriptionCreatorMock;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Swarming\SubscribePro\Platform\Manager\Customer
-     */
-    protected $platformCustomerManagerMock;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Magento\Vault\Api\PaymentTokenManagementInterface
-     */
-    protected $tokenManagementMock;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Swarming\SubscribePro\Helper\QuoteItem
-     */
-    protected $quoteItemHelperMock;
-
-    /**
-     * @var \PHPUnit_Framework_MockObject_MockObject|\Swarming\SubscribePro\Helper\OrderItem
-     */
-    protected $orderItemHelperMock;
+    private $creator;
+    private $customerManager;
+    private $paymentProfileId;
+    private $itemHelper;
+    private $orderItemHelper;
+    private $itemCreator;
 
     protected function setUp(): void
     {
-        $this->platformCustomerManagerMock = $this->getMockBuilder(CustomerManager::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $this->tokenManagementMock = $this->getMockBuilder(PaymentTokenManagementInterface::class)->getMock();
-
-        $this->quoteItemHelperMock = $this->getMockBuilder(QuoteItemHelper::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $this->orderItemHelperMock = $this->getMockBuilder(OrderItemHelper::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $this->quoteItemSubscriptionCreatorMock = $this->getMockBuilder(QuoteItemSubscriptionCreator::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-
-        $this->subscriptionCreator = new SubscriptionCreator(
-            $this->platformCustomerManagerMock,
-            $this->tokenManagementMock,
-            $this->quoteItemHelperMock,
-            $this->orderItemHelperMock,
-            $this->quoteItemSubscriptionCreatorMock
+        $this->customerManager = $this->getMockBuilder(Customer::class)->disableOriginalConstructor()->getMock();
+        $this->paymentProfileId = $this->getMockBuilder(GetPaymentProfileId::class)
+            ->disableOriginalConstructor()->getMock();
+        $this->itemHelper = $this->createStub(QuoteItem::class);
+        $this->orderItemHelper = $this->getMockBuilder(OrderItem::class)->disableOriginalConstructor()->getMock();
+        $this->itemCreator = $this->getMockBuilder(ItemSubscriptionCreator::class)
+            ->disableOriginalConstructor()->getMock();
+        $this->creator = new SubscriptionCreator(
+            $this->createStub(Subscription::class),
+            $this->customerManager,
+            $this->createStub(PaymentTokenManagementInterface::class),
+            $this->itemHelper,
+            $this->orderItemHelper,
+            $this->itemCreator,
+            $this->paymentProfileId
         );
     }
 
-    /**
-     * @expectedException \Exception
-     * @expectedExceptionMessage The vault is not found.
-     */
-    public function testExecuteIfVaultNotFound()
+    public function testCreateSubscriptionsIfPaymentProfileUnavailable()
     {
-        $paymentEntityId = 321;
+        $quote = $this->createMock(SubscriptionQuoteInterface::class);
+        $quote->method('getCustomerId')->willReturn(23);
+        $quote->expects($this->never())->method('getAllShippingAddresses');
+        $quote->expects($this->never())->method('getAllVisibleItems');
+        $payment = $this->createStub(OrderPaymentInterface::class);
+        $order = $this->createStub(OrderInterface::class);
+        $order->method('getPayment')->willReturn($payment);
+        $customer = $this->createStub(CustomerInterface::class);
+        $customer->method('getId')->willReturn(42);
+        $this->customerManager->expects($this->once())->method('getCustomerById')->with(23, true)->willReturn($customer);
+        $this->paymentProfileId->expects($this->once())->method('execute')->with($payment, 42)
+            ->willThrowException(new \UnexpectedValueException('The vault is not found.'));
+        $this->itemCreator->expects($this->never())->method('create');
+        $this->orderItemHelper->expects($this->never())->method('updateOrderItem');
 
-        $paymentMock = $this->createPaymentMock();
-        $paymentMock->expects($this->once())
-            ->method('getEntityId')
-            ->willReturn($paymentEntityId);
-
-        $this->tokenManagementMock->expects($this->once())
-            ->method('getByPaymentId')
-            ->with($paymentEntityId)
-            ->willReturn(null);
-
-        $orderMock = $this->createOrderMock();
-        $orderMock->expects($this->once())
-            ->method('getPayment')
-            ->willReturn($paymentMock);
-
-        $this->platformCustomerManagerMock->expects($this->never())
-            ->method('getCustomerById');
-
-        $quoteMock = $this->createQuoteMock();
-        $quoteMock->expects($this->never())->method('getAllShippingAddresses');
-        $quoteMock->expects($this->never())->method('getBillingAddress');
-        $quoteMock->expects($this->never())->method('getAllVisibleItems');
-        $quoteMock->expects($this->never())->method('getCustomerId');
-
-        $this->subscriptionCreator->createSubscriptions($quoteMock, $orderMock);
+        $this->expectException(\UnexpectedValueException::class);
+        $this->expectExceptionMessage('The vault is not found.');
+        $this->creator->createSubscriptions($quote, $order);
     }
 
     /**
-     * @expectedException \Exception
-     * @expectedExceptionMessage The vault is not found.
+     * @dataProvider subscriptionsDataProvider
      */
-    public function testExecuteIfVaultNotActive()
+    #[\PHPUnit\Framework\Attributes\DataProvider('subscriptionsDataProvider')]
+    public function testCreateSubscriptions($shippingResults, $virtualResult, $enabled, $fulfilling)
     {
-        $paymentEntityId = 321;
+        $quote = $this->createMock(SubscriptionQuoteInterface::class);
+        $quote->method('getCustomerId')->willReturn(23);
+        $payment = $this->createStub(OrderPaymentInterface::class);
+        $order = $this->createStub(OrderInterface::class);
+        $order->method('getPayment')->willReturn($payment);
+        $customer = $this->createStub(CustomerInterface::class);
+        $customer->method('getId')->willReturn(42);
+        $this->customerManager->expects($this->once())->method('getCustomerById')->with(23, true)->willReturn($customer);
+        $this->paymentProfileId->expects($this->once())->method('execute')->with($payment, 42)->willReturn('123');
+        $this->itemHelper->method('getCreateNewSubscriptionAtCheckout')->willReturn($enabled);
+        $this->itemHelper->method('isItemFulfilsSubscription')->willReturn($fulfilling);
 
-        $vaultMock = $this->createVaultMock();
-        $vaultMock->expects($this->once())
-            ->method('getIsActive')
-            ->willReturn(false);
-
-        $paymentMock = $this->createPaymentMock();
-        $paymentMock->expects($this->once())
-            ->method('getEntityId')
-            ->willReturn($paymentEntityId);
-
-        $this->tokenManagementMock->expects($this->once())
-            ->method('getByPaymentId')
-            ->with($paymentEntityId)
-            ->willReturn($vaultMock);
-
-        $orderMock = $this->createOrderMock();
-        $orderMock->expects($this->once())
-            ->method('getPayment')
-            ->willReturn($paymentMock);
-
-        $this->platformCustomerManagerMock->expects($this->never())
-            ->method('getCustomerById');
-
-        $quoteMock = $this->createQuoteMock();
-        $quoteMock->expects($this->never())->method('getAllShippingAddresses');
-        $quoteMock->expects($this->never())->method('getBillingAddress');
-        $quoteMock->expects($this->never())->method('getAllVisibleItems');
-        $quoteMock->expects($this->never())->method('getCustomerId');
-
-        $this->subscriptionCreator->createSubscriptions($quoteMock, $orderMock);
-    }
-
-    /**
-     * @param bool $isVirtual
-     * @param bool $isSubscriptionEnabled
-     * @param bool $isItemFulfilsSubscription
-     * @dataProvider createSubscriptionsIfNotSubscriptionItemDataProvider
-     */
-    public function testCreateSubscriptionsIfNoSubscriptionShippingItems(
-        $isVirtual,
-        $isSubscriptionEnabled,
-        $isItemFulfilsSubscription
-    ) {
-        $customerId = 233;
-        $paymentEntityId = 1235;
-        $paymentProfileId = 1232;
-        $result = [
-            SubscriptionCreator::CREATED_SUBSCRIPTION_IDS => [],
-            SubscriptionCreator::FAILED_SUBSCRIPTION_COUNT => 0
-        ];
-
-        $vaultMock = $this->createVaultMock();
-        $vaultMock->expects($this->once())
-            ->method('getIsActive')
-            ->willReturn(true);
-        $vaultMock->expects($this->atLeastOnce())
-            ->method('getGatewayToken')
-            ->willReturn($paymentProfileId);
-
-        $paymentMock = $this->createPaymentMock();
-        $paymentMock->expects($this->once())
-            ->method('getEntityId')
-            ->willReturn($paymentEntityId);
-
-        $this->tokenManagementMock->expects($this->once())
-            ->method('getByPaymentId')
-            ->with($paymentEntityId)
-            ->willReturn($vaultMock);
-
-        $orderMock = $this->createOrderMock();
-        $orderMock->expects($this->once())
-            ->method('getPayment')
-            ->willReturn($paymentMock);
-
-        $platformCustomerMock = $this->createPlatformCustomerMock();
-
-        $quoteItemMock = $this->createQuoteItemMock();
-        $quoteItemMock->expects($this->atLeastOnce())
-            ->method('getIsVirtual')
-            ->willReturn($isVirtual);
-
-        $addressMock = $this->createAddressMock();
-        $addressMock->expects($this->once())->method('getAllVisibleItems')->willReturn([$quoteItemMock]);
-
-        $quoteMock = $this->createQuoteMock();
-        $quoteMock->expects($this->once())->method('getAllShippingAddresses')->willReturn([$addressMock]);
-        $quoteMock->expects($this->once())->method('getAllVisibleItems')->willReturn([$quoteItemMock]);
-        $quoteMock->expects($this->once())->method('getCustomerId')->willReturn($customerId);
-
-        $this->platformCustomerManagerMock->expects($this->once())
-            ->method('getCustomerById')
-            ->with($customerId)
-            ->willReturn($platformCustomerMock);
-
-        $this->quoteItemHelperMock->expects($this->any())
-            ->method('isSubscriptionEnabled')
-            ->with($quoteItemMock)
-            ->willReturn($isSubscriptionEnabled);
-
-        $this->quoteItemHelperMock->expects($this->any())
-            ->method('isItemFulfilsSubscription')
-            ->with($quoteItemMock)
-            ->willReturn($isItemFulfilsSubscription);
-
-        $this->quoteItemSubscriptionCreatorMock->expects($this->never())->method('create');
-
-        $this->assertEquals(
-            $result,
-            $this->subscriptionCreator->createSubscriptions($quoteMock, $orderMock)
-        );
-    }
-
-    /**
-     * @return array
-     */
-    public function createSubscriptionsIfNotSubscriptionItemDataProvider()
-    {
-        return [
-            'Virtual product' => [
-                'isVirtual' => true,
-                'isSubscriptionEnabled' => false,
-                'isItemFulfilsSubscription' => false
-            ],
-            'Subscription not enabled' => [
-                'isVirtual' => false,
-                'isSubscriptionEnabled' => false,
-                'isItemFulfilsSubscription' => false
-            ],
-            'Quote item fulfils subscription' => [
-                'isVirtual' => false,
-                'isSubscriptionEnabled' => true,
-                'isItemFulfilsSubscription' => true
-            ],
-        ];
-    }
-
-    /**
-     * @param int $paymentEntityId
-     * @param int $paymentProfileId
-     * @param int $customerId
-     * @param int $platformCustomerId
-     * @param \Magento\Quote\Model\Quote\Item[] $quoteItems
-     * @param array $subscriptionIds
-     * @param array $result
-     * @dataProvider createSubscriptionsWithoutVirtualItemsDataProvider
-     */
-    public function testCreateSubscriptionsWithoutVirtualItems(
-        $paymentEntityId,
-        $paymentProfileId,
-        $customerId,
-        $platformCustomerId,
-        $quoteItems,
-        $subscriptionIds,
-        $result
-    ) {
-        $vaultMock = $this->createVaultMock();
-        $vaultMock->expects($this->once())
-            ->method('getIsActive')
-            ->willReturn(true);
-        $vaultMock->expects($this->atLeastOnce())
-            ->method('getGatewayToken')
-            ->willReturn($paymentProfileId);
-
-        $paymentMock = $this->createPaymentMock();
-        $paymentMock->expects($this->once())
-            ->method('getEntityId')
-            ->willReturn($paymentEntityId);
-
-        $this->tokenManagementMock->expects($this->once())
-            ->method('getByPaymentId')
-            ->with($paymentEntityId)
-            ->willReturn($vaultMock);
-
-        $orderMock = $this->createOrderMock();
-        $orderMock->expects($this->once())
-            ->method('getPayment')
-            ->willReturn($paymentMock);
-
-        $addressMock = $this->createAddressMock();
-        $addressMock->expects($this->once())->method('getAllVisibleItems')->willReturn($quoteItems);
-
-        $platformCustomerMock = $this->createPlatformCustomerMock();
-        $platformCustomerMock->expects($this->any())->method('getId')->willReturn($platformCustomerId);
-
-        $quoteMock = $this->createQuoteMock();
-        $quoteMock->expects($this->once())->method('getAllShippingAddresses')->willReturn([$addressMock]);
-        $quoteMock->expects($this->once())->method('getAllVisibleItems')->willReturn([]);
-        $quoteMock->expects($this->once())->method('getCustomerId')->willReturn($customerId);
-
-        $subscriptionMap = [];
-        foreach ($quoteItems as $key => $quoteItem) {
-            $subscriptionMap[$key] = [
-                $quoteItem,
-                $platformCustomerId,
-                $paymentProfileId,
-                $addressMock,
-                $subscriptionIds[$key]
-            ];
+        $address = $this->getMockBuilder(Address::class)->disableOriginalConstructor()->getMock();
+        $billing = $this->createStub(Address::class);
+        $shippingItems = [];
+        $virtualItems = [];
+        $expectedCalls = [];
+        foreach ($shippingResults as $index => $result) {
+            $item = $this->createItem($index + 1, false);
+            $shippingItems[] = $item;
+            if ($enabled && !$fulfilling) {
+                $expectedCalls[] = [$item, 42, '123', $address, $billing, $result];
+            }
         }
-
-        $this->platformCustomerManagerMock->expects($this->once())
-            ->method('getCustomerById')
-            ->with($customerId)
-            ->willReturn($platformCustomerMock);
-
-        $this->quoteItemHelperMock->expects($this->exactly(count($quoteItems)))
-            ->method('isSubscriptionEnabled')
-            ->willReturnMap(array_map(function ($quoteItem) {
-                return [$quoteItem, true];
-            }, $quoteItems));
-
-        $this->quoteItemHelperMock->expects($this->exactly(count($quoteItems)))
-            ->method('isItemFulfilsSubscription')
-            ->willReturnMap(array_map(function ($quoteItem) {
-                return [$quoteItem, false];
-            }, $quoteItems));
-
-        $this->quoteItemSubscriptionCreatorMock->expects($this->exactly(count($quoteItems)))
-            ->method('create')
-            ->willReturnMap($subscriptionMap);
-
-        $this->assertEquals(
-            $result,
-            $this->subscriptionCreator->createSubscriptions($quoteMock, $orderMock)
-        );
-    }
-
-    /**
-     * @return array
-     */
-    public function createSubscriptionsWithoutVirtualItemsDataProvider()
-    {
-        return [
-            'Empty quote' => [
-                'paymentEntityId' => 123,
-                'paymentProfileId' => 123123123,
-                'customerId' => 22323,
-                'platformCustomerId' => 4124124,
-                'quoteItems' => [],
-                'subscriptionIds' => [],
-                'result' => [
-                    SubscriptionCreator::CREATED_SUBSCRIPTION_IDS => [],
-                    SubscriptionCreator::FAILED_SUBSCRIPTION_COUNT => 0
-                ]
-            ],
-            'All quote items valid' => [
-                'paymentEntityId' => 231,
-                'paymentProfileId' => 53432,
-                'customerId' => 8878,
-                'platformCustomerId' => 231,
-                'quoteItems' => [$this->createQuoteItemMock(), $this->createQuoteItemMock()],
-                'subscriptionIds' => [12, 34],
-                'result' => [
-                    SubscriptionCreator::CREATED_SUBSCRIPTION_IDS => [12, 34],
-                    SubscriptionCreator::FAILED_SUBSCRIPTION_COUNT => 0
-                ]
-            ],
-            'With not created subscriptions' => [
-                'paymentEntityId' => 321,
-                'paymentProfileId' => 213,
-                'customerId' => 1098678,
-                'platformCustomerId' => 5435,
-                'quoteItems' => [
-                    $this->createQuoteItemMock(),
-                    $this->createQuoteItemMock(),
-                    $this->createQuoteItemMock()
-                ],
-                'subscriptionIds' => [null, 34, 56],
-                'result' => [
-                    SubscriptionCreator::CREATED_SUBSCRIPTION_IDS => [34, 56],
-                    SubscriptionCreator::FAILED_SUBSCRIPTION_COUNT => 1
-                ]
-            ],
-        ];
-    }
-
-    /**
-     * @param int $paymentEntityId
-     * @param int $paymentProfileId
-     * @param int $customerId
-     * @param int $platformCustomerId
-     * @param \Magento\Quote\Model\Quote\Item[] $quoteItems
-     * @param array $subscriptionIds
-     * @param int $virtualSubscriptionId
-     * @param array $result
-     * @dataProvider createSubscriptionsWithVirtualItemsDataProvider
-     */
-    public function testCreateSubscriptionsWithVirtualItems(
-        $paymentEntityId,
-        $paymentProfileId,
-        $customerId,
-        $platformCustomerId,
-        $quoteItems,
-        $subscriptionIds,
-        $virtualSubscriptionId,
-        $result
-    ) {
-        $vaultMock = $this->createVaultMock();
-        $vaultMock->expects($this->once())
-            ->method('getIsActive')
-            ->willReturn(true);
-        $vaultMock->expects($this->atLeastOnce())
-            ->method('getGatewayToken')
-            ->willReturn($paymentProfileId);
-
-        $paymentMock = $this->createPaymentMock();
-        $paymentMock->expects($this->once())
-            ->method('getEntityId')
-            ->willReturn($paymentEntityId);
-
-        $this->tokenManagementMock->expects($this->once())
-            ->method('getByPaymentId')
-            ->with($paymentEntityId)
-            ->willReturn($vaultMock);
-
-        $orderMock = $this->createOrderMock();
-        $orderMock->expects($this->once())
-            ->method('getPayment')
-            ->willReturn($paymentMock);
-
-        $addressMock = $this->createAddressMock();
-        $addressMock->expects($this->once())->method('getAllVisibleItems')->willReturn($quoteItems);
-
-        $platformCustomerMock = $this->createPlatformCustomerMock();
-        $platformCustomerMock->expects($this->any())->method('getId')->willReturn($platformCustomerId);
-
-        $virtualQuoteItemMock = $this->createQuoteItemMock();
-        $virtualQuoteItemMock->expects($this->once())->method('getIsVirtual')->willReturn(true);
-
-        $quoteMock = $this->createQuoteMock();
-        $quoteMock->expects($this->once())->method('getAllShippingAddresses')->willReturn([$addressMock]);
-        $quoteMock->expects($this->once())->method('getAllVisibleItems')->willReturn([$virtualQuoteItemMock]);
-        $quoteMock->expects($this->once())->method('getCustomerId')->willReturn($customerId);
-
-        $subscriptionMap = [];
-        foreach ($quoteItems as $key => $quoteItem) {
-            $subscriptionMap[$key] = [
-                $quoteItem,
-                $platformCustomerId,
-                $paymentProfileId,
-                $addressMock,
-                $subscriptionIds[$key]
-            ];
+        if ($virtualResult !== false) {
+            $item = $this->createItem(99, true);
+            $virtualItems[] = $item;
+            if ($enabled && !$fulfilling) {
+                $expectedCalls[] = [$item, 42, '123', null, null, $virtualResult];
+            }
         }
-        $subscriptionMap[] = [
-            $virtualQuoteItemMock,
-            $platformCustomerId,
-            $paymentProfileId,
-            null,
-            $virtualSubscriptionId
-        ];
+        $quote->expects($this->once())->method('getAllShippingAddresses')->willReturn([$address]);
+        $quote->method('getBillingAddress')->willReturn($billing);
+        $quote->expects($this->once())->method('getAllVisibleItems')->willReturn(array_merge($shippingItems, $virtualItems));
+        $address->expects($this->once())->method('getAllVisibleItems')->willReturn($shippingItems);
+        $calls = [];
+        $this->itemCreator->expects($this->exactly(count($expectedCalls)))->method('create')
+            ->willReturnCallback(function ($item, $customerId, $profileId, $shipping = null, $billing = null) use (
+                &$calls,
+                $expectedCalls
+            ) {
+                $expected = $expectedCalls[count($calls)];
+                $calls[] = [$item, $customerId, $profileId, $shipping, $billing];
+                $this->assertSame(array_slice($expected, 0, 5), end($calls));
+                return $expected[5];
+            });
+        $created = [];
+        $updatedItems = [];
+        $expectedUpdatedItems = [];
+        $failed = 0;
+        foreach ($expectedCalls as $expected) {
+            if ($expected[5]) {
+                $created[] = $expected[5];
+                $expectedUpdatedItems[] = [$order, $expected[0]->getItemId(), $expected[5]];
+            } else {
+                $failed++;
+            }
+        }
+        $this->orderItemHelper->expects($this->exactly(count($created)))->method('updateOrderItem')
+            ->willReturnCallback(function ($order, $itemId, $subscriptionId) use (&$updatedItems) {
+                $updatedItems[] = [$order, $itemId, $subscriptionId];
+            });
 
-        $isSubscriptionEnabledMap = array_map(function ($quoteItem) {
-            return [$quoteItem, true];
-        }, $quoteItems);
-        $isSubscriptionEnabledMap[] = [$virtualQuoteItemMock, true];
-
-        $isItemFulfilsSubscriptionMap = array_map(function ($quoteItem) {
-            return [$quoteItem, false];
-        }, $quoteItems);
-        $isItemFulfilsSubscriptionMap[] = [$virtualQuoteItemMock, false];
-
-        $this->platformCustomerManagerMock->expects($this->once())
-            ->method('getCustomerById')
-            ->with($customerId)
-            ->willReturn($platformCustomerMock);
-
-        $this->quoteItemHelperMock->expects($this->exactly(count($isSubscriptionEnabledMap)))
-            ->method('isSubscriptionEnabled')
-            ->willReturnMap($isSubscriptionEnabledMap);
-
-        $this->quoteItemHelperMock->expects($this->exactly(count($isItemFulfilsSubscriptionMap)))
-            ->method('isItemFulfilsSubscription')
-            ->willReturnMap($isItemFulfilsSubscriptionMap);
-
-        $this->quoteItemSubscriptionCreatorMock->expects($this->exactly(count($subscriptionMap)))
-            ->method('create')
-            ->willReturnMap($subscriptionMap);
-
-        $this->assertEquals(
-            $result,
-            $this->subscriptionCreator->createSubscriptions($quoteMock, $orderMock)
-        );
+        $this->assertSame([
+            SubscriptionCreator::CREATED_SUBSCRIPTION_IDS => $created,
+            SubscriptionCreator::FAILED_SUBSCRIPTION_COUNT => $failed,
+        ], $this->creator->createSubscriptions($quote, $order));
+        $this->assertSame($expectedUpdatedItems, $updatedItems);
     }
 
-    /**
-     * @return array
-     */
-    public function createSubscriptionsWithVirtualItemsDataProvider()
+    public static function subscriptionsDataProvider()
     {
         return [
-            'Fail to create subscription from virtual product' => [
-                'paymentEntityId' => 123,
-                'paymentProfileId' => 65435,
-                'customerId' => 543,
-                'platformCustomerId' => 5346,
-                'quoteItems' => [
-                    $this->createQuoteItemMock(),
-                    $this->createQuoteItemMock(),
-                    $this->createQuoteItemMock()
-                ],
-                'subscriptionIds' => [123, null, 78],
-                'virtualSubscriptionId' => null,
-                'result' => [
-                    SubscriptionCreator::CREATED_SUBSCRIPTION_IDS => [123, 78],
-                    SubscriptionCreator::FAILED_SUBSCRIPTION_COUNT => 2
-                ]
-            ],
-            'Subscription created for virtual product' => [
-                'paymentEntityId' => 231,
-                'paymentProfileId' => 65435,
-                'customerId' => 543,
-                'platformCustomerId' => 5346,
-                'quoteItems' => [
-                    $this->createQuoteItemMock(),
-                    $this->createQuoteItemMock(),
-                    $this->createQuoteItemMock()
-                ],
-                'subscriptionIds' => [123, null, 78],
-                'virtualSubscriptionId' => 431,
-                'result' => [
-                    SubscriptionCreator::CREATED_SUBSCRIPTION_IDS => [123, 78, 431],
-                    SubscriptionCreator::FAILED_SUBSCRIPTION_COUNT => 1
-                ]
-            ],
+            'Empty quote' => [[], false, true, false],
+            'Subscription not enabled' => [[12], false, false, false],
+            'Quote item fulfils subscription' => [[12], false, true, true],
+            'Virtual product not enabled' => [[], 12, false, false],
+            'All quote items valid' => [[12, 34], false, true, false],
+            'With not created subscriptions' => [[null, 34, 56], false, true, false],
+            'Fail to create subscription from virtual product' => [[123, null, 78], null, true, false],
+            'Subscription created for virtual product' => [[123, null, 78], 431, true, false],
         ];
     }
 
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Sales\Api\Data\OrderInterface
-     */
-    private function createOrderMock()
+    private function createItem($id, $virtual)
     {
-        return $this->getMockBuilder(OrderInterface::class)->getMock();
-    }
-
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Sales\Api\Data\OrderPaymentInterface
-     */
-    private function createPaymentMock()
-    {
-        return $this->getMockBuilder(OrderPaymentInterface::class)->getMock();
-    }
-
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Vault\Api\Data\PaymentTokenInterface
-     */
-    private function createVaultMock()
-    {
-        return $this->getMockBuilder(PaymentTokenInterface::class)->getMock();
-    }
-
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Quote\Model\Quote\Item
-     */
-    private function createQuoteItemMock()
-    {
-        return $this->getMockBuilder(QuoteItem::class)
-            ->disableOriginalConstructor()
-            ->setMethods(['getIsVirtual', '__wakeup'])
-            ->getMock();
-    }
-
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Quote\Model\Quote
-     */
-    private function createQuoteMock()
-    {
-        return $this->getMockBuilder(Quote::class)
-            ->disableOriginalConstructor()
-            ->setMethods(
-                [
-                    'getCustomerId',
-                    'getAllShippingAddresses',
-                    'getBillingAddress',
-                    'getAllVisibleItems',
-                    '__wakeup'
-                ]
-            )
-            ->getMock();
-    }
-
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\SubscribePro\Service\Customer\CustomerInterface
-     */
-    private function createPlatformCustomerMock()
-    {
-        return $this->getMockBuilder(PlatformCustomerInterface::class)->getMock();
-    }
-
-    /**
-     * @return \PHPUnit_Framework_MockObject_MockObject|\Magento\Quote\Model\Quote\Address
-     */
-    private function createAddressMock()
-    {
-        return $this->getMockBuilder(QuoteAddress::class)
-            ->disableOriginalConstructor()
-            ->getMock();
+        $item = $this->createStub(SubscriptionQuoteItem::class);
+        $item->method('getItemId')->willReturn($id);
+        $item->method('getIsVirtual')->willReturn($virtual);
+        return $item;
     }
 }

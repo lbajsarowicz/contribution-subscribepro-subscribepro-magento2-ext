@@ -50,6 +50,7 @@ class ItemTest extends \PHPUnit\Framework\TestCase
      * @param bool $result
      * @dataProvider aroundCompareOptionsDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('aroundCompareOptionsDataProvider')]
     public function testAroundCompareOptions($buyRequestParams1, $buyRequestParams2, $result)
     {
         $subjectResult = true;
@@ -75,7 +76,7 @@ class ItemTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function aroundCompareOptionsDataProvider()
+    public static function aroundCompareOptionsDataProvider()
     {
         return [
             'Buy request params are empty' => [

@@ -7,12 +7,14 @@ use Magento\Framework\DataObject;
 use Magento\Framework\Event\Observer;
 use Magento\Payment\Model\Method\Adapter as MethodAdapter;
 use Magento\Quote\Api\Data\CartInterface;
+use Psr\Log\LoggerInterface;
 use Swarming\SubscribePro\Gateway\Config\Config as GatewayConfig;
 use Swarming\SubscribePro\Gateway\Config\ConfigProvider;
 use Swarming\SubscribePro\Helper\Quote as QuoteHelper;
+use Swarming\SubscribePro\Helper\ThirdPartyPayment;
 use Swarming\SubscribePro\Observer\Payment\Availability as PaymentAvailability;
 
-class Availability extends \PHPUnit\Framework\TestCase
+class AvailabilityTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * @var \Swarming\SubscribePro\Observer\Payment\Availability
@@ -29,16 +31,25 @@ class Availability extends \PHPUnit\Framework\TestCase
      */
     protected $quoteHelperMock;
 
+    /**
+     * @var \PHPUnit\Framework\MockObject\MockObject|\Swarming\SubscribePro\Helper\ThirdPartyPayment
+     */
+    protected $thirdPartyPaymentMock;
+
     protected function setUp(): void
     {
         $this->checkoutSessionMock = $this->getMockBuilder(CheckoutSession::class)
             ->disableOriginalConstructor()->getMock();
         $this->quoteHelperMock = $this->getMockBuilder(QuoteHelper::class)
             ->disableOriginalConstructor()->getMock();
+        $this->thirdPartyPaymentMock = $this->getMockBuilder(ThirdPartyPayment::class)
+            ->disableOriginalConstructor()->getMock();
 
         $this->paymentAvailability = new PaymentAvailability(
             $this->checkoutSessionMock,
-            $this->quoteHelperMock
+            $this->quoteHelperMock,
+            $this->thirdPartyPaymentMock,
+            $this->getMockBuilder(LoggerInterface::class)->getMock()
         );
     }
 
@@ -48,18 +59,18 @@ class Availability extends \PHPUnit\Framework\TestCase
         $resultMock = $this->createResultMock();
 
         $observerMock = $this->createObserverMock();
-        $observerMock->expects($this->at(0))
+        $getDataCalls = [
+            ['method_instance', $methodInstanceMock],
+            ['result', $resultMock],
+            ['quote', null],
+        ];
+        $observerMock->expects($this->exactly(3))
             ->method('getData')
-            ->with('method_instance')
-            ->willReturn($methodInstanceMock);
-        $observerMock->expects($this->at(1))
-            ->method('getData')
-            ->with('result')
-            ->willReturn($resultMock);
-        $observerMock->expects($this->at(2))
-            ->method('getData')
-            ->with('quote')
-            ->willReturn(null);
+            ->willReturnCallback(function ($arg) use (&$getDataCalls) {
+                [$expectedArg, $result] = array_shift($getDataCalls);
+                $this->assertEquals($expectedArg, $arg);
+                return $result;
+            });
 
         $this->checkoutSessionMock->expects($this->once())
             ->method('getQuote')
@@ -78,6 +89,7 @@ class Availability extends \PHPUnit\Framework\TestCase
      * @param bool $expectedIsAvailable
      * @dataProvider executeDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('executeDataProvider')]
     public function testExecute(
         $methodCode,
         $isAvailable,
@@ -89,7 +101,7 @@ class Availability extends \PHPUnit\Framework\TestCase
 
         $methodInstanceMock = $this->createMethodInstanceMock();
         $methodInstanceMock->expects($this->once())->method('getCode')->willReturn($methodCode);
-        $methodInstanceMock->expects($this->once())
+        $methodInstanceMock->expects($isAvailable ? $this->once() : $this->never())
             ->method('getConfigData')
             ->with(GatewayConfig::KEY_ACTIVE_NON_SUBSCRIPTION)
             ->willReturn($isActiveNonSubscription);
@@ -99,28 +111,32 @@ class Availability extends \PHPUnit\Framework\TestCase
             ->method('getData')
             ->with('is_available')
             ->willReturn($isAvailable);
-        $resultMock->expects($this->once())
+        $resultMock->expects($isAvailable ? $this->once() : $this->never())
             ->method('setData')
             ->with('is_available', $expectedIsAvailable);
 
         $observerMock = $this->createObserverMock();
-        $observerMock->expects($this->at(0))
+        $getDataCalls = [
+            ['method_instance', $methodInstanceMock],
+            ['result', $resultMock],
+            ['quote', $quoteMock],
+        ];
+        $observerMock->expects($this->exactly(3))
             ->method('getData')
-            ->with('method_instance')
-            ->willReturn($methodInstanceMock);
-        $observerMock->expects($this->at(1))
-            ->method('getData')
-            ->with('result')
-            ->willReturn($resultMock);
-        $observerMock->expects($this->at(2))
-            ->method('getData')
-            ->with('quote')
-            ->willReturn($quoteMock);
+            ->willReturnCallback(function ($arg) use (&$getDataCalls) {
+                [$expectedArg, $result] = array_shift($getDataCalls);
+                $this->assertEquals($expectedArg, $arg);
+                return $result;
+            });
 
-        $this->quoteHelperMock->expects($this->once())
+        $this->quoteHelperMock->expects($isAvailable ? $this->once() : $this->never())
             ->method('hasSubscription')
             ->with($quoteMock)
             ->willReturn($hasSubscription);
+
+        $this->thirdPartyPaymentMock->expects($this->any())
+            ->method('isThirdPartyPaymentMethodAllowed')
+            ->willReturn(false);
 
         $this->paymentAvailability->execute($observerMock);
     }
@@ -128,7 +144,7 @@ class Availability extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function executeDataProvider()
+    public static function executeDataProvider()
     {
         return [
             'No subscription: method code is not subscribe pro' => [

@@ -3,9 +3,7 @@
 namespace Swarming\SubscribePro\Test\Unit\Helper;
 
 use Magento\Catalog\Model\Product;
-use Magento\Catalog\Model\Product\Configuration\Item\Option\OptionInterface;
 use Magento\Framework\Intl\DateTimeFactory;
-use Magento\Quote\Model\Quote\Item as QuoteItemModel;
 use Magento\Quote\Model\Quote\Item\OptionFactory;
 use Swarming\SubscribePro\Api\Data\ProductInterface as PlatformProductInterface;
 use Swarming\SubscribePro\Api\Data\SubscriptionOptionInterface;
@@ -33,7 +31,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
     {
         $this->itemOptionFactoryMock = $this->getMockBuilder(OptionFactory::class)
             ->disableOriginalConstructor()
-            ->setMethods(['create'])
+            ->onlyMethods(['create'])
             ->getMock();
         $this->dateTimeFactoryMock = $this->getMockBuilder(DateTimeFactory::class)
             ->disableOriginalConstructor()->getMock();
@@ -60,6 +58,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
      * @param array $subscriptionParams
      * @dataProvider getSubscriptionParamsDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getSubscriptionParamsDataProvider')]
     public function testGetSubscriptionParams($buyRequestValue, $subscriptionParams)
     {
         $buyRequestMock = $this->createOptionMock();
@@ -77,7 +76,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getSubscriptionParamsDataProvider()
+    public static function getSubscriptionParamsDataProvider()
     {
         return [
             'Without subscription params' => [
@@ -116,7 +115,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
         $buyRequestMock->expects($this->once())->method('setValue')->with(json_encode($buyRequestParams));
 
         $quoteItemMock = $this->createQuoteItemMock();
-        $quoteItemMock->expects($this->any())
+        $quoteItemMock
             ->method('getOptionByCode')
             ->with('info_buyRequest')
             ->willReturn(null);
@@ -152,7 +151,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
         $buyRequestMock->expects($this->once())->method('setValue')->with(json_encode($buyRequestParams));
 
         $quoteItemMock = $this->createQuoteItemMock();
-        $quoteItemMock->expects($this->any())
+        $quoteItemMock
             ->method('getOptionByCode')
             ->with('info_buyRequest')
             ->willReturn(null);
@@ -193,11 +192,11 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
         ];
 
         $buyRequestMock = $this->createOptionMock();
-        $buyRequestMock->expects($this->any())->method('getValue')->willReturn(json_encode($buyRequestParams));
+        $buyRequestMock->method('getValue')->willReturn(json_encode($buyRequestParams));
         $buyRequestMock->expects($this->once())->method('setValue')->with(json_encode($updatedBuyRequestParams));
 
         $quoteItemMock = $this->createQuoteItemMock();
-        $quoteItemMock->expects($this->any())
+        $quoteItemMock
             ->method('getOptionByCode')
             ->with('info_buyRequest')
             ->willReturn($buyRequestMock);
@@ -214,6 +213,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
      * @param null|string $interval
      * @dataProvider getSubscriptionIntervalDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getSubscriptionIntervalDataProvider')]
     public function testGetSubscriptionInterval($buyRequestValue, $interval)
     {
         $buyRequestMock = $this->createOptionMock();
@@ -231,7 +231,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getSubscriptionIntervalDataProvider()
+    public static function getSubscriptionIntervalDataProvider()
     {
         return [
             'Without subscription params' => [
@@ -261,6 +261,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
      * @param null|string $subscriptionOption
      * @dataProvider getSubscriptionOptionDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getSubscriptionOptionDataProvider')]
     public function testGetSubscriptionOption($buyRequestValue, $subscriptionOption)
     {
         $buyRequestMock = $this->createOptionMock();
@@ -281,7 +282,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getSubscriptionOptionDataProvider()
+    public static function getSubscriptionOptionDataProvider()
     {
         return [
             'Without subscription params' => [
@@ -313,6 +314,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
      * @param bool $isItemFulfilsSubscription
      * @dataProvider isItemFulfilsSubscriptionDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('isItemFulfilsSubscriptionDataProvider')]
     public function testIsItemFulfilsSubscription($buyRequestValue, $isItemFulfilsSubscription)
     {
         $buyRequestMock = $this->createOptionMock();
@@ -333,7 +335,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function isItemFulfilsSubscriptionDataProvider()
+    public static function isItemFulfilsSubscriptionDataProvider()
     {
         return [
             'Without subscription params' => [
@@ -352,7 +354,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
             'With fulfils subscription: false' => [
                 'buyRequestValue' => json_encode([
                     OptionProcessor::KEY_SUBSCRIPTION_OPTION => [
-                        SubscriptionOptionInterface::IS_FULFILLING => 0
+                        SubscriptionOptionInterface::ITEM_FULFILS_SUBSCRIPTION => 0
                     ]
                 ]),
                 'isItemFulfilsSubscription' => false
@@ -360,7 +362,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
             'With fulfils subscription: true' => [
                 'buyRequestValue' => json_encode([
                     OptionProcessor::KEY_SUBSCRIPTION_OPTION => [
-                        SubscriptionOptionInterface::IS_FULFILLING => 1
+                        SubscriptionOptionInterface::ITEM_FULFILS_SUBSCRIPTION => 1
                     ]
                 ]),
                 'isItemFulfilsSubscription' => true
@@ -373,6 +375,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
      * @param bool $isSubscriptionEnabled
      * @dataProvider isSubscriptionEnabledDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('isSubscriptionEnabledDataProvider')]
     public function testIsSubscriptionEnabled($subscriptionOption, $isSubscriptionEnabled)
     {
         $buyRequestValue = json_encode([
@@ -393,14 +396,14 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
 
         $this->assertEquals(
             $isSubscriptionEnabled,
-            $this->quoteItemHelper->isCreateNewSubscriptionAtCheckout($quoteItemMock)
+            $this->quoteItemHelper->getCreateNewSubscriptionAtCheckout($quoteItemMock)
         );
     }
 
     /**
      * @return array
      */
-    public function isSubscriptionEnabledDataProvider()
+    public static function isSubscriptionEnabledDataProvider()
     {
         return [
             'Not subscription option' => [
@@ -420,20 +423,22 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
      * @param bool $hasSubscription
      * @dataProvider hasSubscriptionDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('hasSubscriptionDataProvider')]
     public function testHasSubscription($subscriptionOption, $isItemFulfilsSubscription, $hasSubscription)
     {
         $buyRequestValue = json_encode([
             OptionProcessor::KEY_SUBSCRIPTION_OPTION => [
-                SubscriptionOptionInterface::OPTION => $subscriptionOption,
-                SubscriptionOptionInterface::IS_FULFILLING => $isItemFulfilsSubscription,
+                SubscriptionOptionInterface::CREATE_NEW_SUBSCRIPTION_AT_CHECKOUT =>
+                    $subscriptionOption == PlatformProductInterface::SO_SUBSCRIPTION,
+                SubscriptionOptionInterface::ITEM_FULFILS_SUBSCRIPTION => $isItemFulfilsSubscription,
             ]
         ]);
 
         $buyRequestMock = $this->createOptionMock();
-        $buyRequestMock->expects($this->any())->method('getValue')->willReturn($buyRequestValue);
+        $buyRequestMock->method('getValue')->willReturn($buyRequestValue);
 
         $quoteItemMock = $this->createQuoteItemMock();
-        $quoteItemMock->expects($this->any())
+        $quoteItemMock
             ->method('getOptionByCode')
             ->with('info_buyRequest')
             ->willReturn($buyRequestMock);
@@ -447,7 +452,7 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function hasSubscriptionDataProvider()
+    public static function hasSubscriptionDataProvider()
     {
         return [
             'No subscription option: no fulfils subscription: no subscription' => [
@@ -478,9 +483,9 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
      */
     private function createQuoteItemMock()
     {
-        return $this->getMockBuilder(QuoteItemModel::class)
+        return $this->getMockBuilder(QuoteItemWithUpdatedAt::class)
             ->disableOriginalConstructor()
-            ->setMethods(
+            ->onlyMethods(
                 [
                     'getOptionByCode',
                     'addOption',
@@ -499,9 +504,8 @@ class QuoteItemTest extends \PHPUnit\Framework\TestCase
      */
     private function createOptionMock()
     {
-        return $this->getMockBuilder(OptionInterface::class)
-            ->setMethods(['setProduct', 'getValue', 'setCode', 'setValue'])
-            ->getMock();
+        return $this->getMockBuilder(\Swarming\SubscribePro\Test\Unit\QuoteItemOption::class)
+            ->disableOriginalConstructor()->getMock();
     }
 
     /**

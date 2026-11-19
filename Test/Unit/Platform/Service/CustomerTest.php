@@ -33,6 +33,7 @@ class CustomerTest extends AbstractService
      * @param int $expectedWebsiteId
      * @dataProvider createCustomerDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('createCustomerDataProvider')]
     public function testCreateCustomer($websiteId, $expectedWebsiteId)
     {
         $platformCustomerMock = $this->createPlatformCustomerMock();
@@ -52,7 +53,7 @@ class CustomerTest extends AbstractService
     /**
      * @return array
      */
-    public function createCustomerDataProvider()
+    public static function createCustomerDataProvider()
     {
         return [
             'With website Id' => [

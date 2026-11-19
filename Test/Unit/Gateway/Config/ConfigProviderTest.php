@@ -49,6 +49,8 @@ class ConfigProviderTest extends \PHPUnit\Framework\TestCase
      */
     protected $storeManagerMock;
 
+    protected $oauthMock;
+
     protected function setUp(): void
     {
         $this->generalConfigMock = $this->getMockBuilder(GeneralConfig::class)
@@ -75,12 +77,16 @@ class ConfigProviderTest extends \PHPUnit\Framework\TestCase
             ->disableOriginalConstructor()
             ->getMock();
 
+        $this->oauthMock = $this->getMockBuilder(\Swarming\SubscribePro\Platform\Tool\Oauth::class)
+            ->disableOriginalConstructor()->getMock();
+
         $this->configProvider = new ConfigProvider(
             $this->generalConfigMock,
             $this->gatewayConfigMock,
             $this->ccConfigMock,
             $this->ccConfigProviderMock,
             $this->platformConfigToolMock,
+            $this->oauthMock,
             $this->storeManagerMock
         );
     }
@@ -123,6 +129,7 @@ class ConfigProviderTest extends \PHPUnit\Framework\TestCase
      * @param array $result
      * @dataProvider getConfigDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getConfigDataProvider')]
     public function testGetConfig(
         $isActive,
         $environmentKey,
@@ -157,13 +164,31 @@ class ConfigProviderTest extends \PHPUnit\Framework\TestCase
 
         $this->ccConfigProviderMock->expects($this->once())->method('getIcons')->willReturn($icons);
 
+        $this->generalConfigMock->expects($this->exactly(2))->method('getBaseUrl')->willReturn('https://example.com');
+        $this->gatewayConfigMock->expects($this->once())->method('isThreeDSActive')->willReturn(true);
+        $this->gatewayConfigMock->expects($this->once())->method('isWalletAuthorizationActive')->willReturn(true);
+        $this->gatewayConfigMock->expects($this->once())->method('getBrowserSize')->willReturn('full-screen');
+        $this->gatewayConfigMock->expects($this->once())->method('getAcceptHeader')->willReturn('application/json');
+        $this->gatewayConfigMock->expects($this->once())->method('getWalletAuthorizationAmount')->willReturn('1.00');
+        $this->oauthMock->expects($this->once())->method('getSessionAccessToken')->with(null)->willReturn('token');
+
+        $result += [
+            'apiBaseUrl' => 'https://example.com/',
+            'isThreeDSActive' => true,
+            'isWalletAuthorizationActive' => true,
+            'adminOrderAmountUrl' => ConfigProvider::ADMIN_ORDER_AMOUNT_URL,
+            'sessionAccessToken' => 'token',
+            'browserSize' => 'full-screen',
+            'acceptHeader' => 'application/json',
+            GatewayConfig::KEY_WALLET_AUTHORIZATION_AMOUNT => '1.00'
+        ];
         $this->assertEquals($result, $this->configProvider->getConfig());
     }
 
     /**
      * @return array
      */
-    public function getConfigDataProvider()
+    public static function getConfigDataProvider()
     {
         return [
             'No available card types' => [

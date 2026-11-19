@@ -6,10 +6,9 @@ use Magento\Catalog\Api\Data\ProductInterface;
 use Magento\Catalog\Model\Product;
 use Magento\Framework\Event\ManagerInterface as EventManagerInterface;
 use Magento\Framework\Intl\DateTimeFactory;
-use Magento\Quote\Api\Data\CartInterface;
 use Magento\Quote\Model\Quote\Address as QuoteAddress;
 use Magento\Quote\Model\Quote\Item as QuoteItem;
-use Magento\Store\Api\Data\StoreInterface;
+use Magento\Store\Model\Store;
 use Psr\Log\LoggerInterface;
 use Swarming\SubscribePro\Api\Data\AddressInterface as PlatformAddressInterface;
 use Swarming\SubscribePro\Api\Data\SubscriptionInterface as PlatformSubscriptionInterface;
@@ -115,7 +114,7 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
         $dateTimeMock->expects($this->once())->method('format')->with('Y-m-d')->willReturn($nextOrderDate);
 
         $addressMock = $this->createAddressMock();
-        $addressMock->expects($this->any())->method('getShippingMethod')->willReturn($shippingMethod);
+        $addressMock->method('getShippingMethod')->willReturn($shippingMethod);
         $addressMock->expects($this->once())->method('getFirstname')->willReturn('firstname');
         $addressMock->expects($this->once())->method('getLastname')->willReturn('Last-name');
         $addressMock->expects($this->once())->method('getCity')->willReturn('New York');
@@ -145,7 +144,7 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
 
         $storeCode = 'main';
         $storeMock = $this->createStoreMock();
-        $storeMock->expects($this->any())->method('getCode')->willReturn($storeCode);
+        $storeMock->method('getCode')->willReturn($storeCode);
 
         $productSku = 'sku22';
         $productMock = $this->createProductMock();
@@ -232,7 +231,7 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
         $dateTimeMock->expects($this->once())->method('format')->with('Y-m-d')->willReturn($nextOrderDate);
 
         $addressMock = $this->createAddressMock();
-        $addressMock->expects($this->any())->method('getShippingMethod')->willReturn($shippingMethod);
+        $addressMock->method('getShippingMethod')->willReturn($shippingMethod);
         $addressMock->expects($this->once())->method('getFirstname')->willReturn('firstname');
         $addressMock->expects($this->once())->method('getLastname')->willReturn('Last-name');
         $addressMock->expects($this->once())->method('getCity')->willReturn('New York');
@@ -262,7 +261,7 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
 
         $storeCode = 'main';
         $storeMock = $this->createStoreMock();
-        $storeMock->expects($this->any())->method('getCode')->willReturn($storeCode);
+        $storeMock->method('getCode')->willReturn($storeCode);
 
         $productSku = 'sku22';
         $productMock = $this->createProductMock();
@@ -312,18 +311,13 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
             ->with($quoteItemMock)
             ->willReturn($productOption);
 
-        $this->eventManagerMock->expects($this->at(0))
+        $events = [];
+        $this->eventManagerMock->expects($this->exactly(2))
             ->method('dispatch')
-            ->with(
-                'subscribe_pro_before_create_subscription_from_quote_item',
-                ['subscription' => $subscriptionMock, 'quote_item' => $quoteItemMock]
-            );
-        $this->eventManagerMock->expects($this->at(1))
-            ->method('dispatch')
-            ->with(
-                'subscribe_pro_after_create_subscription_from_quote_item',
-                ['subscription' => $subscriptionMock, 'quote_item' => $quoteItemMock]
-            );
+            ->willReturnCallback(function ($event, $data) use (&$events, $subscriptionMock, $quoteItemMock) {
+                $events[] = $event;
+                $this->assertSame(['subscription' => $subscriptionMock, 'quote_item' => $quoteItemMock], $data);
+            });
 
         $this->platformSubscriptionServiceMock->expects($this->once())
             ->method('createSubscription')
@@ -339,6 +333,10 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
             $newSubscriptionId,
             $this->subscriptionCreator->create($quoteItemMock, $platformCustomerId, $paymentProfileId, $addressMock)
         );
+        $this->assertSame([
+            'subscribe_pro_before_create_subscription_from_quote_item',
+            'subscribe_pro_after_create_subscription_from_quote_item',
+        ], $events);
     }
 
     public function testCreateSubscriptionWithVirtual()
@@ -355,7 +353,7 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
 
         $storeCode = 'main';
         $storeMock = $this->createStoreMock();
-        $storeMock->expects($this->any())->method('getCode')->willReturn($storeCode);
+        $storeMock->method('getCode')->willReturn($storeCode);
 
         $productSku = 'sku22';
         $productMock = $this->createProductMock();
@@ -405,18 +403,13 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
             ->with($quoteItemMock)
             ->willReturn($productOption);
 
-        $this->eventManagerMock->expects($this->at(0))
+        $events = [];
+        $this->eventManagerMock->expects($this->exactly(2))
             ->method('dispatch')
-            ->with(
-                'subscribe_pro_before_create_subscription_from_quote_item',
-                ['subscription' => $subscriptionMock, 'quote_item' => $quoteItemMock]
-            );
-        $this->eventManagerMock->expects($this->at(1))
-            ->method('dispatch')
-            ->with(
-                'subscribe_pro_after_create_subscription_from_quote_item',
-                ['subscription' => $subscriptionMock, 'quote_item' => $quoteItemMock]
-            );
+            ->willReturnCallback(function ($event, $data) use (&$events, $subscriptionMock, $quoteItemMock) {
+                $events[] = $event;
+                $this->assertSame(['subscription' => $subscriptionMock, 'quote_item' => $quoteItemMock], $data);
+            });
 
         $this->platformSubscriptionServiceMock->expects($this->once())
             ->method('createSubscription')
@@ -432,6 +425,10 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
             $newSubscriptionId,
             $this->subscriptionCreator->create($quoteItemMock, $platformCustomerId, $paymentProfileId, null)
         );
+        $this->assertSame([
+            'subscribe_pro_before_create_subscription_from_quote_item',
+            'subscribe_pro_after_create_subscription_from_quote_item',
+        ], $events);
     }
 
     public function testCreateSubscriptionWithCouponCode()
@@ -449,7 +446,7 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
         $dateTimeMock->expects($this->once())->method('format')->with('Y-m-d')->willReturn($nextOrderDate);
 
         $addressMock = $this->createAddressMock();
-        $addressMock->expects($this->any())->method('getShippingMethod')->willReturn($shippingMethod);
+        $addressMock->method('getShippingMethod')->willReturn($shippingMethod);
         $addressMock->expects($this->once())->method('getFirstname')->willReturn('firstname');
         $addressMock->expects($this->once())->method('getLastname')->willReturn('Last-name');
         $addressMock->expects($this->once())->method('getCity')->willReturn('New York');
@@ -479,7 +476,7 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
 
         $storeCode = 'main';
         $storeMock = $this->createStoreMock();
-        $storeMock->expects($this->any())->method('getCode')->willReturn($storeCode);
+        $storeMock->method('getCode')->willReturn($storeCode);
 
         $productSku = 'sku22';
         $productMock = $this->createProductMock();
@@ -531,18 +528,13 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
             ->with($quoteItemMock)
             ->willReturn($productOption);
 
-        $this->eventManagerMock->expects($this->at(0))
+        $events = [];
+        $this->eventManagerMock->expects($this->exactly(2))
             ->method('dispatch')
-            ->with(
-                'subscribe_pro_before_create_subscription_from_quote_item',
-                ['subscription' => $subscriptionMock, 'quote_item' => $quoteItemMock]
-            );
-        $this->eventManagerMock->expects($this->at(1))
-            ->method('dispatch')
-            ->with(
-                'subscribe_pro_after_create_subscription_from_quote_item',
-                ['subscription' => $subscriptionMock, 'quote_item' => $quoteItemMock]
-            );
+            ->willReturnCallback(function ($event, $data) use (&$events, $subscriptionMock, $quoteItemMock) {
+                $events[] = $event;
+                $this->assertSame(['subscription' => $subscriptionMock, 'quote_item' => $quoteItemMock], $data);
+            });
 
         $this->platformSubscriptionServiceMock->expects($this->once())
             ->method('createSubscription')
@@ -558,6 +550,10 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
             $newSubscriptionId,
             $this->subscriptionCreator->create($quoteItemMock, $platformCustomerId, $paymentProfileId, $addressMock)
         );
+        $this->assertSame([
+            'subscribe_pro_before_create_subscription_from_quote_item',
+            'subscribe_pro_after_create_subscription_from_quote_item',
+        ], $events);
     }
 
     /**
@@ -575,7 +571,9 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
      */
     private function createStoreMock()
     {
-        return $this->getMockBuilder(StoreInterface::class)->getMock();
+        $store = $this->getMockBuilder(Store::class)->disableOriginalConstructor()->getMock();
+        $store->method('getConfig')->with('general/locale/timezone')->willReturn('UTC');
+        return $store;
     }
 
     /**
@@ -583,9 +581,7 @@ class SubscriptionCreatorTest extends \PHPUnit\Framework\TestCase
      */
     private function createQuoteMock()
     {
-        return $this->getMockBuilder(CartInterface::class)
-            ->setMethods(['getCouponCode', 'getStore'])
-            ->getMockForAbstractClass();
+        return $this->getMockBuilder(SubscriptionQuoteInterface::class)->getMock();
     }
 
     /**

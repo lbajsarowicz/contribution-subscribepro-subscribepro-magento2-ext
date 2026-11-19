@@ -34,13 +34,14 @@ class PurchaseCommandTest extends AbstractProfileCreatorCommand
     }
 
     /**
-     * @expectedException \Magento\Payment\Gateway\Command\CommandException
-     * @expectedExceptionMessage Transaction has been declined. Please try again later.
      * @dataProvider executeIfFailToProcessTransactionDataProvider
      * @param array $requestData
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('executeIfFailToProcessTransactionDataProvider')]
     public function testExecuteIfFailToProcessTransaction(array $requestData)
     {
+        $this->expectException(\Magento\Payment\Gateway\Command\CommandException::class);
+        $this->expectExceptionMessage('Transaction has been declined. Please try again later.');
         $exception = new \InvalidArgumentException('Payment token is not passed');
         $this->executeSetPlatformWebsite($this->subjectReaderMock, $this->storeManagerMock, $this->platformMock);
         $this->processTransactionFail($requestData, $exception);
@@ -50,7 +51,7 @@ class PurchaseCommandTest extends AbstractProfileCreatorCommand
     /**
      * @return array
      */
-    public function executeIfFailToProcessTransactionDataProvider()
+    public static function executeIfFailToProcessTransactionDataProvider()
     {
         return [
             'Payment method token is not set' => [
@@ -62,12 +63,10 @@ class PurchaseCommandTest extends AbstractProfileCreatorCommand
         ];
     }
 
-    /**
-     * @expectedException \Magento\Payment\Gateway\Command\CommandException
-     * @expectedExceptionMessage Transaction has been declined. Please try again later.
-     */
     public function testFailToExecuteIfIsActiveCodeWithoutPaymentProfile()
     {
+        $this->expectException(\Magento\Payment\Gateway\Command\CommandException::class);
+        $this->expectExceptionMessage('Transaction has been declined. Please try again later.');
         $exception = new LocalizedException(__('Cannot create payment profile.'));
         $requestData = [
             VaultConfigProvider::IS_ACTIVE_CODE => true,

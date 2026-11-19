@@ -10,12 +10,13 @@ class HandlerPoolTest extends \PHPUnit\Framework\TestCase
     /**
      * @param array $handlers
      * @param string $eventType
-     * @expectedException \DomainException
-     * @expectedExceptionMessageRegExp /Handler for '\w+' event is not found./
      * @dataProvider getHandlerIfHandlerNotFoundDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('getHandlerIfHandlerNotFoundDataProvider')]
     public function testGetHandlerIfHandlerNotFound($handlers, $eventType)
     {
+        $this->expectException(\DomainException::class);
+        $this->expectExceptionMessage("Handler for '{$eventType}' event is not found.");
         $handlerPool = new HandlerPool($handlers);
         $handlerPool->getHandler($eventType);
     }
@@ -23,11 +24,11 @@ class HandlerPoolTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function getHandlerIfHandlerNotFoundDataProvider()
+    public static function getHandlerIfHandlerNotFoundDataProvider()
     {
         return [
             'Event type not set' => [
-                'handlers' => ['some_type' => $this->createWebhookHandlerMock()],
+                'handlers' => ['some_type' => 'unused'],
                 'eventType' => 'another_type'
             ],
             'Event not implement HandlerInterface' => [
@@ -56,6 +57,6 @@ class HandlerPoolTest extends \PHPUnit\Framework\TestCase
      */
     private function createWebhookHandlerMock()
     {
-        return $this->getMockBuilder(HandlerInterface::class)->getMock();
+        return $this->createStub(HandlerInterface::class);
     }
 }

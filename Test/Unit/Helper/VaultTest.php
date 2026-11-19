@@ -64,6 +64,7 @@ class VaultTest extends \PHPUnit\Framework\TestCase
      * @param string $hashKey
      * @dataProvider initDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('initDataProvider')]
     public function testInitVault(
         $profileId,
         $type,
@@ -87,8 +88,8 @@ class VaultTest extends \PHPUnit\Framework\TestCase
         $profileMock->expects($this->once())->method('getMagentoCustomerId')->willReturn($customerId);
         $profileMock->expects($this->once())->method('getCreditcardType')->willReturn($cardType);
         $profileMock->expects($this->once())->method('getCreditcardLastDigits')->willReturn($lastDigits);
-        $profileMock->expects($this->any())->method('getCreditcardMonth')->willReturn($month);
-        $profileMock->expects($this->any())->method('getCreditcardYear')->willReturn($year);
+        $profileMock->method('getCreditcardMonth')->willReturn($month);
+        $profileMock->method('getCreditcardYear')->willReturn($year);
         $profileMock->expects($this->once())->method('getPaymentToken')->willReturn($paymentToken);
 
         $tokenMock = $this->createPaymentTokenMock();
@@ -101,10 +102,10 @@ class VaultTest extends \PHPUnit\Framework\TestCase
         $tokenMock->expects($this->once())->method('setExpiresAt')->with($formattedExpirationDate);
         $tokenMock->expects($this->once())->method('setPublicHash')->with($enctyptedHash);
         $tokenMock->expects($this->once())->method('getGatewayToken')->willReturn($gatewayToken);
-        $tokenMock->expects($this->any())->method('getCustomerId')->willReturn($customerId);
-        $tokenMock->expects($this->any())->method('getPaymentMethodCode')->willReturn($paymentMethodCode);
-        $tokenMock->expects($this->any())->method('getType')->willReturn($type);
-        $tokenMock->expects($this->any())->method('getTokenDetails')->willReturn($tokenDetails);
+        $tokenMock->method('getCustomerId')->willReturn($customerId);
+        $tokenMock->method('getPaymentMethodCode')->willReturn($paymentMethodCode);
+        $tokenMock->method('getType')->willReturn($type);
+        $tokenMock->method('getTokenDetails')->willReturn($tokenDetails);
 
         $dateTimeMock = $this->createDateTimeMock();
         $dateTimeMock->expects($this->once())->method('add')->with(new \DateInterval('P1M'));
@@ -134,7 +135,7 @@ class VaultTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function initDataProvider()
+    public static function initDataProvider()
     {
         return [
             'No customer ID: hash without customer ID' => [
@@ -200,12 +201,16 @@ class VaultTest extends \PHPUnit\Framework\TestCase
     {
         $year = '2019';
         $month = '11';
-        $updatedTokenDetails = ['expirationDate' => "{$month}/{$year}"];
+        $updatedTokenDetails = [
+            'expirationDate' => "{$month}/{$year}",
+            'maskedCC' => null,
+            'paymentToken' => null,
+        ];
         $expirationDate = '2025-05-01 00:00:00';
 
         $profileMock = $this->createPaymentProfileMock();
-        $profileMock->expects($this->any())->method('getCreditcardMonth')->willReturn($month);
-        $profileMock->expects($this->any())->method('getCreditcardYear')->willReturn($year);
+        $profileMock->method('getCreditcardMonth')->willReturn($month);
+        $profileMock->method('getCreditcardYear')->willReturn($year);
 
         $tokenMock = $this->createPaymentTokenMock();
         $tokenMock->expects($this->once())->method('getTokenDetails')->willReturn(null);
@@ -246,8 +251,10 @@ class VaultTest extends \PHPUnit\Framework\TestCase
         $expirationDate = '2025-05-01 00:00:00';
 
         $profileMock = $this->createPaymentProfileMock();
-        $profileMock->expects($this->any())->method('getCreditcardMonth')->willReturn($month);
-        $profileMock->expects($this->any())->method('getCreditcardYear')->willReturn($year);
+        $profileMock->expects($this->once())->method('getCreditcardLastDigits')->willReturn(4444);
+        $profileMock->expects($this->once())->method('getPaymentToken')->willReturn('abc123xyz');
+        $profileMock->method('getCreditcardMonth')->willReturn($month);
+        $profileMock->method('getCreditcardYear')->willReturn($year);
 
         $tokenMock = $this->createPaymentTokenMock();
         $tokenMock->expects($this->once())->method('getTokenDetails')->willReturn(json_encode($tokenDetails));

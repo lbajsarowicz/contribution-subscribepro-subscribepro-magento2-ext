@@ -3,7 +3,7 @@
 namespace Swarming\SubscribePro\Test\Unit\Observer\CheckoutCart;
 
 use Magento\Catalog\Api\ProductRepositoryInterface;
-use Magento\Catalog\Model\Product;
+use Swarming\SubscribePro\Test\Unit\Catalog\Product;
 use Magento\Checkout\Model\Cart;
 use Magento\Framework\App\State;
 use Magento\Framework\App\State as AppState;
@@ -12,7 +12,7 @@ use Magento\Framework\Event\Observer;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Message\ManagerInterface;
 use Magento\Quote\Model\Quote;
-use Magento\Quote\Model\Quote\Item as QuoteItem;
+use Swarming\SubscribePro\Test\Unit\Quote\Item as QuoteItem;
 use Psr\Log\LoggerInterface;
 use Swarming\SubscribePro\Api\Data\ProductInterface;
 use Swarming\SubscribePro\Api\Data\SubscriptionOptionInterface;
@@ -122,7 +122,11 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $subscriptionInterval = 'monthly';
         $platformProduct2Mock = $this->createPlatformProductMock();
 
-        $subscription1Params = ['params'];
+        $subscription1Params = [
+            SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
+                SubscriptionOptionInterface::OPTION => $subscriptionOption,
+            ]
+        ];
         $subscription2Params = [
             SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
                 SubscriptionOptionInterface::OPTION => $subscriptionOption,
@@ -148,14 +152,16 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $quoteItem2Mock->expects($this->once())->method('getParentItem')->willReturn(null);
 
         $infoDataObjectMock = $this->createInfoDataObjectMock();
-        $infoDataObjectMock->expects($this->at(0))
+        $infoDataObjectMock->expects($this->exactly(2))
             ->method('getData')
-            ->with($itemId1)
-            ->willReturn($subscription1Params);
-        $infoDataObjectMock->expects($this->at(1))
-            ->method('getData')
-            ->with($itemId2)
-            ->willReturn($subscription2Params);
+            ->willReturnCallback(function (...$arguments) use ($itemId1, $itemId2, $subscription1Params, $subscription2Params) {
+                if ($arguments[0] === $itemId1) {
+                    $this->assertSame([$itemId1, null], $arguments);
+                    return $subscription1Params;
+                }
+                $this->assertSame([$itemId2, null], $arguments);
+                return $subscription2Params;
+            });
 
         $quoteMock = $this->createQuoteMock();
         $quoteMock->expects($this->once())
@@ -166,14 +172,16 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $cartMock->expects($this->once())->method('getQuote')->willReturn($quoteMock);
 
         $observerMock = $this->createObserverMock();
-        $observerMock->expects($this->at(0))
+        $observerMock->expects($this->exactly(2))
             ->method('getData')
-            ->with('cart')
-            ->willReturn($cartMock);
-        $observerMock->expects($this->at(1))
-            ->method('getData')
-            ->with('info')
-            ->willReturn($infoDataObjectMock);
+            ->willReturnCallback(function (...$arguments) use ($cartMock, $infoDataObjectMock) {
+                if ($arguments[0] === 'cart') {
+                    $this->assertSame(['cart', null], $arguments);
+                    return $cartMock;
+                }
+                $this->assertSame(['info', null], $arguments);
+                return $infoDataObjectMock;
+            });
 
         $this->generalConfigMock->expects($this->once())
             ->method('isEnabled')
@@ -296,8 +304,8 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $this->subscriptionOptionUpdaterMock->expects($this->exactly(2))
             ->method('update')
             ->willReturnMap([
-                [$quoteItem1Mock, $platformProduct1ParentMock, $subscriptionOption, $subscriptionInterval, []],
-                [$quoteItem2Mock, $platformProduct2Mock, $subscriptionOption, $subscriptionInterval, []]
+                [$quoteItem1Mock, $platformProduct1ParentMock, $subscriptionOption, $subscriptionInterval, null, []],
+                [$quoteItem2Mock, $platformProduct2Mock, $subscriptionOption, $subscriptionInterval, null, []]
             ]);
 
         $this->cartUpdateItemsAfter->execute($observerMock);
@@ -314,7 +322,11 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $subscriptionInterval = 'monthly';
         $platformProduct2Mock = $this->createPlatformProductMock();
 
-        $subscription1Params = ['params'];
+        $subscription1Params = [
+            SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
+                SubscriptionOptionInterface::OPTION => $subscriptionOption,
+            ]
+        ];
         $subscription2Params = [
             SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
                 SubscriptionOptionInterface::OPTION => $subscriptionOption,
@@ -346,14 +358,16 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $quoteItem2Mock->expects($this->once())->method('getParentItem')->willReturn(null);
 
         $infoDataObjectMock = $this->createInfoDataObjectMock();
-        $infoDataObjectMock->expects($this->at(0))
+        $infoDataObjectMock->expects($this->exactly(2))
             ->method('getData')
-            ->with($itemId1)
-            ->willReturn($subscription1Params);
-        $infoDataObjectMock->expects($this->at(1))
-            ->method('getData')
-            ->with($itemId2)
-            ->willReturn($subscription2Params);
+            ->willReturnCallback(function (...$arguments) use ($itemId1, $itemId2, $subscription1Params, $subscription2Params) {
+                if ($arguments[0] === $itemId1) {
+                    $this->assertSame([$itemId1, null], $arguments);
+                    return $subscription1Params;
+                }
+                $this->assertSame([$itemId2, null], $arguments);
+                return $subscription2Params;
+            });
 
         $quoteMock = $this->createQuoteMock();
         $quoteMock->expects($this->once())
@@ -364,14 +378,16 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $cartMock->expects($this->once())->method('getQuote')->willReturn($quoteMock);
 
         $observerMock = $this->createObserverMock();
-        $observerMock->expects($this->at(0))
+        $observerMock->expects($this->exactly(2))
             ->method('getData')
-            ->with('cart')
-            ->willReturn($cartMock);
-        $observerMock->expects($this->at(1))
-            ->method('getData')
-            ->with('info')
-            ->willReturn($infoDataObjectMock);
+            ->willReturnCallback(function (...$arguments) use ($cartMock, $infoDataObjectMock) {
+                if ($arguments[0] === 'cart') {
+                    $this->assertSame(['cart', null], $arguments);
+                    return $cartMock;
+                }
+                $this->assertSame(['info', null], $arguments);
+                return $infoDataObjectMock;
+            });
 
         $this->generalConfigMock->expects($this->once())
             ->method('isEnabled')
@@ -381,15 +397,16 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
             ->method('isSubscriptionEnabled')
             ->willReturnMap([[$product1Mock, true], [$product2Mock, true]]);
 
-        $this->platformProductManagerMock->expects($this->at(0))
+        $this->platformProductManagerMock->expects($this->exactly(2))
             ->method('getProduct')
-            ->with($product1Sku)
-            ->willThrowException($exception);
-
-        $this->platformProductManagerMock->expects($this->at(1))
-            ->method('getProduct')
-            ->with($product2Sku)
-            ->willReturn($platformProduct2Mock);
+            ->willReturnCallback(function (...$arguments) use ($exception, $platformProduct2Mock, $product1Sku, $product2Sku) {
+                if ($arguments[0] === $product1Sku) {
+                    $this->assertSame([$product1Sku, null], $arguments);
+                    throw $exception;
+                }
+                $this->assertSame([$product2Sku, null], $arguments);
+                return $platformProduct2Mock;
+            });
 
         $this->appStateMock->expects($this->once())
             ->method('getMode')
@@ -420,6 +437,7 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
      * @param string $appMode
      * @dataProvider failToExecuteIfNoFirstPlatformProductDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('failToExecuteIfNoFirstPlatformProductDataProvider')]
     public function testFailToExecuteIfNoFirstPlatformProduct(
         $itemId1,
         $itemId2,
@@ -457,14 +475,16 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $quoteItem2Mock->expects($this->once())->method('getParentItem')->willReturn(null);
 
         $infoDataObjectMock = $this->createInfoDataObjectMock();
-        $infoDataObjectMock->expects($this->at(0))
+        $infoDataObjectMock->expects($this->exactly(2))
             ->method('getData')
-            ->with($itemId1)
-            ->willReturn($subscription1Params);
-        $infoDataObjectMock->expects($this->at(1))
-            ->method('getData')
-            ->with($itemId2)
-            ->willReturn($subscription2Params);
+            ->willReturnCallback(function (...$arguments) use ($itemId1, $itemId2, $subscription1Params, $subscription2Params) {
+                if ($arguments[0] === $itemId1) {
+                    $this->assertSame([$itemId1, null], $arguments);
+                    return $subscription1Params;
+                }
+                $this->assertSame([$itemId2, null], $arguments);
+                return $subscription2Params;
+            });
 
         $quoteMock = $this->createQuoteMock();
         $quoteMock->expects($this->once())
@@ -475,14 +495,16 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $cartMock->expects($this->once())->method('getQuote')->willReturn($quoteMock);
 
         $observerMock = $this->createObserverMock();
-        $observerMock->expects($this->at(0))
+        $observerMock->expects($this->exactly(2))
             ->method('getData')
-            ->with('cart')
-            ->willReturn($cartMock);
-        $observerMock->expects($this->at(1))
-            ->method('getData')
-            ->with('info')
-            ->willReturn($infoDataObjectMock);
+            ->willReturnCallback(function (...$arguments) use ($cartMock, $infoDataObjectMock) {
+                if ($arguments[0] === 'cart') {
+                    $this->assertSame(['cart', null], $arguments);
+                    return $cartMock;
+                }
+                $this->assertSame(['info', null], $arguments);
+                return $infoDataObjectMock;
+            });
 
         $this->generalConfigMock->expects($this->once())
             ->method('isEnabled')
@@ -492,15 +514,16 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
             ->method('isSubscriptionEnabled')
             ->willReturnMap([[$product1Mock, true], [$product2Mock, true]]);
 
-        $this->platformProductManagerMock->expects($this->at(0))
+        $this->platformProductManagerMock->expects($this->exactly(2))
             ->method('getProduct')
-            ->with($product1Sku)
-            ->willThrowException($exception);
-
-        $this->platformProductManagerMock->expects($this->at(1))
-            ->method('getProduct')
-            ->with($product2Sku)
-            ->willReturn($platformProduct2Mock);
+            ->willReturnCallback(function (...$arguments) use ($exception, $platformProduct2Mock, $product1Sku, $product2Sku) {
+                if ($arguments[0] === $product1Sku) {
+                    $this->assertSame([$product1Sku, null], $arguments);
+                    throw $exception;
+                }
+                $this->assertSame([$product2Sku, null], $arguments);
+                return $platformProduct2Mock;
+            });
 
         $this->appStateMock->expects($this->once())
             ->method('getMode')
@@ -517,7 +540,7 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function failToExecuteIfNoFirstPlatformProductDataProvider()
+    public static function failToExecuteIfNoFirstPlatformProductDataProvider()
     {
         return [
             'Default mode' => [
@@ -526,7 +549,11 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
                 'product1Sku' => 'product-1-sku',
                 'product2Sku' => 'product-2-sku',
                 'exception' => new NoSuchEntityException(__('log message')),
-                'subscription1Params' => ['params'],
+                'subscription1Params' => [
+                    SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
+                        SubscriptionOptionInterface::OPTION => 'subscribe',
+                    ]
+                ],
                 'subscription2Params' => [
                     SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
                         SubscriptionOptionInterface::OPTION => 'subscribe',
@@ -543,7 +570,11 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
                 'product1Sku' => 'product1sku',
                 'product2Sku' => 'product2sku',
                 'exception' => new NoSuchEntityException(__('error message')),
-                'subscription1Params' => ['params'],
+                'subscription1Params' => [
+                    SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
+                        SubscriptionOptionInterface::OPTION => 'subscribe',
+                    ]
+                ],
                 'subscription2Params' => [
                     SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION => [
                         SubscriptionOptionInterface::OPTION => 'onetime_purchase',
@@ -572,6 +603,7 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
      * @param array $item2Warnings
      * @dataProvider executeDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('executeDataProvider')]
     public function testExecute(
         $itemId1,
         $itemId2,
@@ -586,11 +618,12 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $item1Warnings,
         $item2Warnings
     ) {
+        $updateFirst = !empty($subscription1Params[SubscriptionOptionProcessor::KEY_SUBSCRIPTION_OPTION]);
         $platformProduct1Mock = $this->createPlatformProductMock();
         $platformProduct2Mock = $this->createPlatformProductMock();
 
         $product1Mock = $this->createProductMock();
-        $product1Mock->expects($this->once())
+        $product1Mock->expects($updateFirst ? $this->once() : $this->never())
             ->method('getData')
             ->with(ProductInterface::SKU)
             ->willReturn($product1Sku);
@@ -603,8 +636,8 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
 
         $quoteItem1Mock = $this->createQuoteItemMock();
         $quoteItem1Mock->expects($this->once())->method('getItemId')->willReturn($itemId1);
-        $quoteItem1Mock->expects($this->once())->method('getProduct')->willReturn($product1Mock);
-        $quoteItem1Mock->expects($this->once())->method('getParentItem')->willReturn(null);
+        $quoteItem1Mock->expects($updateFirst ? $this->once() : $this->never())->method('getProduct')->willReturn($product1Mock);
+        $quoteItem1Mock->expects($updateFirst ? $this->once() : $this->never())->method('getParentItem')->willReturn(null);
 
         $quoteItem2Mock = $this->createQuoteItemMock();
         $quoteItem2Mock->expects($this->once())->method('getItemId')->willReturn($itemId2);
@@ -612,14 +645,16 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $quoteItem2Mock->expects($this->once())->method('getParentItem')->willReturn(null);
 
         $infoDataObjectMock = $this->createInfoDataObjectMock();
-        $infoDataObjectMock->expects($this->at(0))
+        $infoDataObjectMock->expects($this->exactly(2))
             ->method('getData')
-            ->with($itemId1)
-            ->willReturn($subscription1Params);
-        $infoDataObjectMock->expects($this->at(1))
-            ->method('getData')
-            ->with($itemId2)
-            ->willReturn($subscription2Params);
+            ->willReturnCallback(function (...$arguments) use ($itemId1, $itemId2, $subscription1Params, $subscription2Params) {
+                if ($arguments[0] === $itemId1) {
+                    $this->assertSame([$itemId1, null], $arguments);
+                    return $subscription1Params;
+                }
+                $this->assertSame([$itemId2, null], $arguments);
+                return $subscription2Params;
+            });
 
         $quoteMock = $this->createQuoteMock();
         $quoteMock->expects($this->once())
@@ -630,43 +665,71 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
         $cartMock->expects($this->once())->method('getQuote')->willReturn($quoteMock);
 
         $observerMock = $this->createObserverMock();
-        $observerMock->expects($this->at(0))
+        $observerMock->expects($this->exactly(2))
             ->method('getData')
-            ->with('cart')
-            ->willReturn($cartMock);
-        $observerMock->expects($this->at(1))
-            ->method('getData')
-            ->with('info')
-            ->willReturn($infoDataObjectMock);
+            ->willReturnCallback(function (...$arguments) use ($cartMock, $infoDataObjectMock) {
+                if ($arguments[0] === 'cart') {
+                    $this->assertSame(['cart', null], $arguments);
+                    return $cartMock;
+                }
+                $this->assertSame(['info', null], $arguments);
+                return $infoDataObjectMock;
+            });
 
         $this->generalConfigMock->expects($this->once())
             ->method('isEnabled')
             ->willReturn(true);
 
-        $this->productHelperMock->expects($this->exactly(2))
+        $this->productHelperMock->expects($this->exactly($updateFirst ? 2 : 1))
             ->method('isSubscriptionEnabled')
             ->willReturnMap([[$product1Mock, true], [$product2Mock, true]]);
 
-        $this->platformProductManagerMock->expects($this->at(0))
+        $this->platformProductManagerMock->expects($this->exactly($updateFirst ? 2 : 1))
             ->method('getProduct')
-            ->with($product1Sku)
-            ->willReturn($platformProduct1Mock);
+            ->willReturnCallback(function (...$arguments) use ($platformProduct1Mock, $platformProduct2Mock, $product1Sku, $product2Sku) {
+                if ($arguments[0] === $product1Sku) {
+                    $this->assertSame([$product1Sku, null], $arguments);
+                    return $platformProduct1Mock;
+                }
+                $this->assertSame([$product2Sku, null], $arguments);
+                return $platformProduct2Mock;
+            });
 
-        $this->platformProductManagerMock->expects($this->at(1))
-            ->method('getProduct')
-            ->with($product2Sku)
-            ->willReturn($platformProduct2Mock);
-
-        $this->subscriptionOptionUpdaterMock->expects($this->at(0))
+        $this->subscriptionOptionUpdaterMock->expects($this->exactly($updateFirst ? 2 : 1))
             ->method('update')
-            ->with($quoteItem1Mock, $platformProduct1Mock, $subscription1Option, $subscription1Interval)
-            ->willReturn($item1Warnings);
+            ->willReturnCallback(function (...$arguments) use (
+                $item1Warnings,
+                $item2Warnings,
+                $platformProduct1Mock,
+                $platformProduct2Mock,
+                $quoteItem1Mock,
+                $quoteItem2Mock,
+                $subscription1Interval,
+                $subscription1Option,
+                $subscription2Interval,
+                $subscription2Option
+            ) {
+                if ($arguments[0] === $quoteItem1Mock) {
+                    $this->assertSame([
+                        $quoteItem1Mock,
+                        $platformProduct1Mock,
+                        $subscription1Option,
+                        $subscription1Interval,
+                        null
+                    ], $arguments);
+                    return $item1Warnings;
+                }
+                $this->assertSame([
+                    $quoteItem2Mock,
+                    $platformProduct2Mock,
+                    $subscription2Option,
+                    $subscription2Interval,
+                    null
+                ], $arguments);
+                return $item2Warnings;
+            });
 
-        $this->subscriptionOptionUpdaterMock->expects($this->at(1))
-            ->method('update')
-            ->with($quoteItem2Mock, $platformProduct2Mock, $subscription2Option, $subscription2Interval)
-            ->willReturn($item2Warnings);
-
+        $item1Warnings = $updateFirst ? $item1Warnings : [];
         $warningsMap = array_map(function ($warning) {
             return [$warning];
         }, array_merge($item1Warnings, $item2Warnings));
@@ -680,7 +743,7 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function executeDataProvider()
+    public static function executeDataProvider()
     {
         return [
             'Not set subscription params for first product' => [
@@ -787,7 +850,7 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
     {
         return $this->getMockBuilder(QuoteItem::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getItemId', 'getParentItem', 'getParentItemId', 'getProduct', 'isDeleted', '__wakeup'])
+            ->onlyMethods(['getItemId', 'getParentItem', 'getParentItemId', 'getProduct', 'isDeleted'])
             ->getMock();
     }
 
@@ -798,7 +861,7 @@ class CartUpdateItemsAfterTest extends \PHPUnit\Framework\TestCase
     {
         return $this->getMockBuilder(Product::class)
             ->disableOriginalConstructor()
-            ->setMethods(['getParentItemId', 'getData', '__wakeup'])
+            ->onlyMethods(['getParentItemId', 'getData'])
             ->getMock();
     }
 

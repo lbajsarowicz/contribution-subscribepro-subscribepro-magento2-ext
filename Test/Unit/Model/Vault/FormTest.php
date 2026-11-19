@@ -70,7 +70,7 @@ class FormTest extends \PHPUnit\Framework\TestCase
             ->disableOriginalConstructor()->getMock();
         $this->paymentTokenFactoryMock = $this->getMockBuilder(CreditCardTokenFactory::class)
             ->disableOriginalConstructor()
-            ->setMethods(['create'])
+            ->onlyMethods(['create'])
             ->getMock();
         $this->vaultHelperMock = $this->getMockBuilder(VaultHelper::class)
             ->disableOriginalConstructor()->getMock();
@@ -96,14 +96,15 @@ class FormTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     * @expectedExceptionMessage The credit card can be not saved.
      * @param array $profileData
      * @param int $customerId
      * @dataProvider createProfileIfEmptyTokenDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('createProfileIfEmptyTokenDataProvider')]
     public function testCreateProfileIfEmptyToken($profileData, $customerId)
     {
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
+        $this->expectExceptionMessage('The credit card can be not saved.');
         $this->validatorMock->expects($this->never())->method('validate');
         $this->platformPaymentProfileServiceMock->expects($this->never())->method('saveToken');
         $this->paymentTokenRepositoryMock->expects($this->never())->method('save');
@@ -114,7 +115,7 @@ class FormTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function createProfileIfEmptyTokenDataProvider()
+    public static function createProfileIfEmptyTokenDataProvider()
     {
         return [
             'Token not set' => [
@@ -179,12 +180,10 @@ class FormTest extends \PHPUnit\Framework\TestCase
         $this->vaultForm->createProfile($profileData, $customerId);
     }
 
-    /**
-     * @expectedException \Magento\Framework\Exception\LocalizedException
-     * @expectedExceptionMessage The credit card is not found.
-     */
     public function testUpdateProfileIfNoPaymentToken()
     {
+        $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
+        $this->expectExceptionMessage('The credit card is not found.');
         $customerId = 123123;
         $profileData = ['data'];
         $publicHash = 'hash';

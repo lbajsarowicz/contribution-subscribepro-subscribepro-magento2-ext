@@ -40,6 +40,7 @@ class VaultConfigTest extends \PHPUnit\Framework\TestCase
      * @param bool $result
      * @dataProvider isActiveDataProvider
      */
+    #[\PHPUnit\Framework\Attributes\DataProvider('isActiveDataProvider')]
     public function testIsActive(
         $isActiveValue,
         $result
@@ -55,7 +56,7 @@ class VaultConfigTest extends \PHPUnit\Framework\TestCase
     /**
      * @return array
      */
-    public function isActiveDataProvider()
+    public static function isActiveDataProvider()
     {
         return [
             'Is active value is zero' => [
