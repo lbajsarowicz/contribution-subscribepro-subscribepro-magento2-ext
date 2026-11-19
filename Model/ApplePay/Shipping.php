@@ -15,6 +15,7 @@ use Magento\Quote\Api\Data\CartInterface;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\QuoteManagement;
 use Magento\Quote\Model\ResourceModel\Quote as QuoteResourceModel;
+use Magento\Quote\Model\ResourceModel\Quote\Address as QuoteAddressResourceModel;
 
 class Shipping
 {
@@ -53,6 +54,10 @@ class Shipping
      */
     private $quoteResourceModel;
     /**
+     * @var QuoteAddressResourceModel
+     */
+    private $quoteAddressResourceModel;
+    /**
      * @var JsonSerializer
      */
     protected $jsonSerializer;
@@ -65,19 +70,22 @@ class Shipping
      * @param Currency                $currency
      * @param QuoteResourceModel      $quoteResourceModel
      * @param JsonSerializer          $jsonSerializer
+     * @param QuoteAddressResourceModel $quoteAddressResourceModel
      */
     public function __construct(
         SessionManagerInterface $checkoutSession,
         DirectoryRegion $directoryRegion,
         Currency $currency,
         QuoteResourceModel $quoteResourceModel,
-        JsonSerializer $jsonSerializer
+        JsonSerializer $jsonSerializer,
+        QuoteAddressResourceModel $quoteAddressResourceModel
     ) {
         $this->checkoutSession = $checkoutSession;
         $this->directoryRegion = $directoryRegion;
         $this->currency = $currency;
         $this->quoteResourceModel = $quoteResourceModel;
         $this->jsonSerializer = $jsonSerializer;
+        $this->quoteAddressResourceModel = $quoteAddressResourceModel;
     }
 
     /**
@@ -129,7 +137,7 @@ class Shipping
             $quote->getShippingAddress()->setRegionId($region->getId());
             $quote->getShippingAddress()->setRegion($region->getName());
         }
-        $quote->getShippingAddress()->save();
+        $this->quoteAddressResourceModel->save($quote->getShippingAddress());
 
         // Recalculate quote
         /* @phpstan-ignore-next-line */

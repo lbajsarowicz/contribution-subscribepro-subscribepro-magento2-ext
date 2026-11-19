@@ -5,6 +5,7 @@ namespace Swarming\SubscribePro\Model\Vault;
 use Magento\Customer\Block\Widget\Telephone;
 use Magento\Directory\Helper\Data;
 use Magento\Directory\Model\RegionFactory;
+use Magento\Directory\Model\ResourceModel\Region as RegionResourceModel;
 use Magento\Framework\Exception\LocalizedException;
 use SubscribePro\Service\Address\AddressInterface;
 use SubscribePro\Service\PaymentProfile\PaymentProfileInterface;
@@ -27,18 +28,26 @@ class Validator
     private Telephone $telephoneWidget;
 
     /**
+     * @var RegionResourceModel
+     */
+    private $regionResourceModel;
+
+    /**
      * @param RegionFactory $regionFactory
      * @param Data $directoryData
      * @param Telephone $telephoneWidget
+     * @param RegionResourceModel $regionResourceModel
      */
     public function __construct(
         RegionFactory $regionFactory,
         Data $directoryData,
-        Telephone $telephoneWidget
+        Telephone $telephoneWidget,
+        RegionResourceModel $regionResourceModel
     ) {
         $this->regionFactory = $regionFactory;
         $this->directoryData = $directoryData;
         $this->telephoneWidget = $telephoneWidget;
+        $this->regionResourceModel = $regionResourceModel;
     }
 
     /**
@@ -103,7 +112,7 @@ class Validator
         }
 
         $region = $this->regionFactory->create();
-        $region->load($addressData['region_id']);
+        $this->regionResourceModel->load($region, $addressData['region_id']);
         if ($region->getCode() && $region->getCountryId() == $addressData['country']) {
             $addressData['region'] = $region->getCode();
         }

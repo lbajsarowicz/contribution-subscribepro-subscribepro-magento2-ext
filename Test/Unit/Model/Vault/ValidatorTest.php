@@ -6,6 +6,7 @@ use Magento\Customer\Block\Widget\Telephone;
 use Magento\Directory\Helper\Data as DirectoryDataHelper;
 use Magento\Directory\Model\Region;
 use Magento\Directory\Model\RegionFactory;
+use Magento\Directory\Model\ResourceModel\Region as RegionResourceModel;
 use SubscribePro\Service\PaymentProfile\PaymentProfileInterface;
 use Swarming\SubscribePro\Api\Data\AddressInterface;
 use Swarming\SubscribePro\Model\Vault\Validator;
@@ -27,6 +28,11 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
      */
     protected $directoryDataMock;
 
+    /**
+     * @var RegionResourceModel|\PHPUnit\Framework\MockObject\MockObject
+     */
+    private $regionResourceModelMock;
+
     protected function setUp(): void
     {
         $this->regionFactoryMock = $this->getMockBuilder(RegionFactory::class)
@@ -38,10 +44,13 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
             ->disableOriginalConstructor()->getMock();
         $telephoneWidgetMock->method('isRequired')->willReturn(true);
 
+        $this->regionResourceModelMock = $this->createMock(RegionResourceModel::class);
+
         $this->validator = new Validator(
             $this->regionFactoryMock,
             $this->directoryDataMock,
-            $telephoneWidgetMock
+            $telephoneWidgetMock,
+            $this->regionResourceModelMock
         );
     }
 
@@ -57,6 +66,7 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
         $this->directoryDataMock->expects($this->never())->method('isRegionRequired');
         $this->directoryDataMock->expects($this->never())->method('isZipCodeOptional');
         $this->regionFactoryMock->expects($this->never())->method('create');
+        $this->regionResourceModelMock->expects($this->never())->method('load');
 
         $this->validator->validate($profileData);
     }
@@ -111,14 +121,15 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
     ) {
         $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $this->expectExceptionMessage('Not all billing address fields are filled.');
-        $this->directoryDataMock->expects($this->any())->method('isRegionRequired')
+        $this->directoryDataMock->method('isRegionRequired')
             ->with($country)
             ->willReturn($isRegionRequired);
-        $this->directoryDataMock->expects($this->any())->method('isZipCodeOptional')
+        $this->directoryDataMock->method('isZipCodeOptional')
             ->with($country)
             ->willReturn($isZipCodeOptional);
 
         $this->regionFactoryMock->expects($this->never())->method('create');
+        $this->regionResourceModelMock->expects($this->never())->method('load');
 
         $this->validator->validate($profileData);
     }
@@ -285,14 +296,15 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
         $isRegionRequired,
         $isZipCodeOptional
     ) {
-        $this->directoryDataMock->expects($this->any())->method('isRegionRequired')
+        $this->directoryDataMock->method('isRegionRequired')
             ->with($country)
             ->willReturn($isRegionRequired);
-        $this->directoryDataMock->expects($this->any())->method('isZipCodeOptional')
+        $this->directoryDataMock->method('isZipCodeOptional')
             ->with($country)
             ->willReturn($isZipCodeOptional);
 
         $this->regionFactoryMock->expects($this->never())->method('create');
+        $this->regionResourceModelMock->expects($this->never())->method('load');
 
         $this->assertEquals($profileData, $this->validator->validate($profileData));
     }
@@ -382,14 +394,15 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
         $this->expectException(\Magento\Framework\Exception\LocalizedException::class);
         $this->expectExceptionMessage('Not all billing address fields are filled.');
         $regionMock = $this->createRegionMock();
-        $regionMock->expects($this->once())->method('load')->with($this->equalTo($regionId));
+        $this->regionResourceModelMock->expects($this->once())->method('load')
+            ->with($this->identicalTo($regionMock), $this->equalTo($regionId));
         $regionMock->setCode($regionCode);
         $regionMock->setCountryId($regionCountryId);
 
-        $this->directoryDataMock->expects($this->any())->method('isRegionRequired')
+        $this->directoryDataMock->method('isRegionRequired')
             ->with($profileData[PaymentProfileInterface::BILLING_ADDRESS][AddressInterface::COUNTRY])
             ->willReturn($isRegionRequired);
-        $this->directoryDataMock->expects($this->any())->method('isZipCodeOptional')
+        $this->directoryDataMock->method('isZipCodeOptional')
             ->with($profileData[PaymentProfileInterface::BILLING_ADDRESS][AddressInterface::COUNTRY])
             ->willReturn($isZipCodeOptional);
 
@@ -472,14 +485,15 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
         $result
     ) {
         $regionMock = $this->createRegionMock();
-        $regionMock->expects($this->once())->method('load')->with($this->equalTo($regionId));
+        $this->regionResourceModelMock->expects($this->once())->method('load')
+            ->with($this->identicalTo($regionMock), $this->equalTo($regionId));
         $regionMock->setCode($regionCode);
         $regionMock->setCountryId($regionCountryId);
 
-        $this->directoryDataMock->expects($this->any())->method('isRegionRequired')
+        $this->directoryDataMock->method('isRegionRequired')
             ->with($profileData[PaymentProfileInterface::BILLING_ADDRESS][AddressInterface::COUNTRY])
             ->willReturn($isRegionRequired);
-        $this->directoryDataMock->expects($this->any())->method('isZipCodeOptional')
+        $this->directoryDataMock->method('isZipCodeOptional')
             ->with($profileData[PaymentProfileInterface::BILLING_ADDRESS][AddressInterface::COUNTRY])
             ->willReturn($isZipCodeOptional);
 
@@ -610,7 +624,7 @@ class ValidatorTest extends \PHPUnit\Framework\TestCase
     {
         return $this->getMockBuilder(Region::class)
             ->disableOriginalConstructor()
-            ->onlyMethods(['load', '__wakeup'])
+            ->onlyMethods(['__wakeup'])
             ->getMock();
     }
 }
